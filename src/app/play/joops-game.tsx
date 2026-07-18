@@ -25,7 +25,7 @@ import {
   stepJunk,
 } from "@/lib/debris";
 import { type Popup, drawPopup, makePopup, stepPopup } from "@/lib/effects";
-import { loadBest, saveBest, loadUpgrades, saveUpgrades, type Upgrades } from "@/lib/storage";
+import { loadBest, saveBest, loadUpgrades, saveUpgrades, loadIdentity, saveIdentity, loadRank, saveRank, type Upgrades, type Identity } from "@/lib/storage";
 import {
   disposeAudio,
   ensureAudio,
@@ -37,7 +37,7 @@ import {
   playUpgrade,
   updateThrustSound,
 } from "@/lib/sound";
-import { GameUi, type GameUiState } from "./game-ui";
+import { GameUi, type GameUiState, type RankResult } from "./game-ui";
 
 // ----------------------------------------------------------------------------
 // TUNE — 손맛·판정·성장의 튜닝 상수 (숫자의 최종 원본, CLAUDE.md §15)
@@ -84,11 +84,40 @@ const TUNE = {
 type Phase = "title" | "playing" | "over";
 
 export default function JoopsGame() {
+  const [mounted, setMounted] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [upgrades, setUpgrades] = useState<Upgrades>(loadUpgrades());
   const upgradesRef = useRef(upgrades);
   upgradesRef.current = upgrades;
+  
+  const [identity, setIdentity] = useState<Identity | null>(loadIdentity());
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
+
   const goHomeRef = useRef<(() => void) | null>(null);
+
+  const handleHatch = async (name: string): Promise<string | void> => {
+    try {
+      const res = await fetch("/api/pets/hatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!data.success) return data.error || "부화 실패";
+      
+      const newIdentity = { 
+        name: data.pet.name, 
+        secret_token: data.pet.secret_token,
+        inventory: data.pet.inventory || { satellite: 0, can: 0, bolt: 0, spring: 0 },
+        evolution_lvl: data.pet.evolution_lvl || 1
+      };
+      saveIdentity(newIdentity);
+      setIdentity(newIdentity);
+    } catch {
+      return "네트워크 오류가 발생했습니다.";
+    }
+  };
 
   const handleUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => {
     ensureAudio(); // 클릭 시 오디오 활성화 보장
@@ -102,7 +131,7 @@ export default function JoopsGame() {
   };
 
   // React가 아는 유일한 게임 상태. HUD·오버레이가 이걸 그린다.
-  const [ui, setUi] = useState<Omit<GameUiState, "onUpgrade">>({
+  const [ui, setUi] = useState<Omit<GameUiState, "onUpgrade" | "onHome" | "identity" | "onHatch">>({
     phase: "title",
     score: 0,
     hearts: TUNE.hearts,
@@ -110,9 +139,15 @@ export default function JoopsGame() {
     best: 0,
     newBest: false,
     upgrades,
+    rankResult: null,
   });
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -128,6 +163,7 @@ export default function JoopsGame() {
     let hearts = TUNE.hearts;
     let best = loadBest();
     let newBest = false;
+    let eatenJunkRun = { satellite: 0, can: 0, bolt: 0, spring: 0 };
 
     // --- Joystick State ---
     let joyActive = false;
@@ -141,9 +177,23 @@ export default function JoopsGame() {
     let vx = 0;
     let vy = 0;
 
-    const getDynamicMaxFuel = () => TUNE.maxFuel + upgradesRef.current.maxFuelLvl * 1000;
-    const getDynamicThrustSpeed = (lvl: number) => TUNE.thrustSpeeds[lvl] * (1 + upgradesRef.current.thrustLvl * 0.15);
-    const getDynamicMagnet = () => TUNE.magnetRange + upgradesRef.current.magnetLvl * 40;
+    const getEvolutionLvl = () => identityRef.current?.evolution_lvl || 1;
+
+    const getDynamicMaxFuel = () => {
+      let base = TUNE.maxFuel + upgradesRef.current.maxFuelLvl * 1000;
+      if (getEvolutionLvl() >= 3) base += 2000;
+      return base;
+    };
+    const getDynamicThrustSpeed = (lvl: number) => {
+      let speed = TUNE.thrustSpeeds[lvl] * (1 + upgradesRef.current.thrustLvl * 0.15);
+      if (getEvolutionLvl() >= 4) speed *= 1.2;
+      return speed;
+    };
+    const getDynamicMagnet = () => {
+      let range = TUNE.magnetRange + upgradesRef.current.magnetLvl * 40;
+      if (getEvolutionLvl() >= 2) range *= 1.3;
+      return range;
+    };
 
     // 타입을 명시하는 이유: TUNE은 as const라 startR이 리터럴 타입(24)이 되는데,
     // 그대로 두면 r에 다른 숫자를 대입할 수 없게 된다.
@@ -160,9 +210,15 @@ export default function JoopsGame() {
     let invincible = 0; // 남은 무적 시간
     let shake = 0; // 남은 화면 흔들림 시간
     let overAt = 0; // 게임오버 시각 — 재시작 디바운스용
+    let shieldCooldown = 0;
+    let hasShield = false;
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
-    const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest, upgrades: upgradesRef.current });
+    const pushUi = (rankResult: RankResult | "loading" | "error" | null = null) => setUi(prev => ({ 
+      ...prev, 
+      phase, score, hearts, eaten, best, newBest, upgrades: upgradesRef.current,
+      ...(rankResult !== null ? { rankResult } : {})
+    }));
 
     // ------------------------------------------------------------------
     // 사건들
@@ -178,6 +234,7 @@ export default function JoopsGame() {
       window.history.pushState(null, "", "/play");
       score = 0;
       eaten = 0;
+      eatenJunkRun = { satellite: 0, can: 0, bolt: 0, spring: 0 };
       hearts = TUNE.hearts;
       newBest = false;
       mascot.r = TUNE.startR;
@@ -188,7 +245,9 @@ export default function JoopsGame() {
       invincible = 0;
       shake = 0;
       spawnTimer = 0;
-      pushUi();
+      shieldCooldown = 0;
+      hasShield = getEvolutionLvl() >= 5;
+      pushUi(null); // Reset rank result on new game
     };
 
     const gameOver = () => {
@@ -204,7 +263,58 @@ export default function JoopsGame() {
       saveUpgrades(upgradesRef.current);
       updateThrustSound(0); // 엔진음 정지
       playGameOver();
-      pushUi();
+      
+      const currentId = identityRef.current;
+      if (currentId) {
+        pushUi("loading");
+        const prevRank = loadRank();
+        
+        fetch("/api/pets/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: currentId.name,
+            secret_token: currentId.secret_token,
+            run_score: score,
+            eaten_junk: eatenJunkRun
+          }),
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) {
+            pushUi("error");
+            return;
+          }
+          
+          const currentId = identityRef.current;
+          if (currentId) {
+            const updated = { ...currentId, inventory: data.inventory };
+            saveIdentity(updated);
+            setIdentity(updated);
+          }
+          
+          const newHighest = data.highest_score_rank;
+          const newTotal = data.total_score_rank;
+          
+          const highestDiff = prevRank.highestRank ? prevRank.highestRank - newHighest : 0;
+          const totalDiff = prevRank.totalRank ? prevRank.totalRank - newTotal : 0;
+          
+          saveRank({ highestRank: newHighest, totalRank: newTotal });
+          
+          pushUi({
+            highestRank: newHighest,
+            highestDiff,
+            totalRank: newTotal,
+            totalDiff
+          });
+        })
+        .catch(e => {
+          console.error("Sync failed:", e);
+          pushUi("error");
+        });
+      } else {
+        pushUi(null);
+      }
     };
 
     /** 게임 중 메인 화면(타이틀)으로 돌아가기 */
@@ -234,6 +344,10 @@ export default function JoopsGame() {
       } else {
         score += 10;
         eaten += 1;
+        if (j.kind === "satellite" || j.kind === "can" || j.kind === "bolt" || j.kind === "spring") {
+          eatenJunkRun[j.kind]++;
+        }
+        
         const u = upgradesRef.current;
         upgradesRef.current = { ...u, totalJunk: u.totalJunk + 1 };
         
@@ -248,6 +362,14 @@ export default function JoopsGame() {
 
     /** 가시 피격: 하트 -1 + 무적 + 흔들림 + 축소 + 팝업 + 소리. */
     const hit = () => {
+      if (hasShield) {
+        hasShield = false;
+        shieldCooldown = 45;
+        invincible = TUNE.invincibleTime;
+        popups.push(makePopup("SHIELD BLOCK!", mascot.x, mascot.y - mascot.r - 14, "#66fcf1"));
+        playHit();
+        return;
+      }
       hearts -= 1;
       invincible = TUNE.invincibleTime;
       shake = TUNE.shakeTime;
@@ -281,6 +403,14 @@ export default function JoopsGame() {
       elapsed += dt;
       if (invincible > 0) invincible -= dt;
       if (shake > 0) shake -= dt;
+
+      if (getEvolutionLvl() >= 5 && !hasShield && phase === "playing") {
+        shieldCooldown -= dt;
+        if (shieldCooldown <= 0) {
+          hasShield = true;
+          popups.push(makePopup("SHIELD READY!", mascot.x, mascot.y - mascot.r - 20, "#66fcf1"));
+        }
+      }
 
       // --- 스폰 (over에서는 새로 안 뿌리고, 남은 것만 마저 떨어진다) ---
       if (phase !== "over") {
@@ -478,7 +608,18 @@ export default function JoopsGame() {
       // 무적 중 초당 8회 반투명 깜빡임 — "지금은 안 맞아요"의 시각적 전달 (§8)
       const blinking =
         invincible > 0 && Math.floor(elapsed * TUNE.blinkHz * 2) % 2 === 1;
-      drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1);
+      drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1, getEvolutionLvl());
+
+      // Draw shield
+      if (hasShield && phase === "playing") {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(mascot.x, mascot.y, mascot.r + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(102, 252, 241, ${0.4 + Math.sin(elapsed * 4) * 0.2})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
 
       for (const p of popups) drawPopup(ctx, p);
 
@@ -551,6 +692,7 @@ export default function JoopsGame() {
       const y = e.clientY - rect.top;
 
       if (phase === "title") {
+        if (!identityRef.current) return; // 이름 짓기 전에는 터치 무시
         start();
       } else if (phase === "over") {
         // 죽는 순간 누르고 있던 손가락이 결과 화면을 스킵하는 사고 방지 (§4)
@@ -619,7 +761,11 @@ export default function JoopsGame() {
       window.removeEventListener("resize", onResize);
       disposeAudio();
     };
-  }, []);
+  }, [mounted]);
+
+  if (!mounted) {
+    return <div className="fixed inset-0 bg-black"></div>;
+  }
 
   return (
     <div className="fixed inset-0">
@@ -629,7 +775,20 @@ export default function JoopsGame() {
         className="absolute inset-0 h-full w-full touch-none"
         aria-label="스페이스 죽스 게임 화면"
       />
-      <GameUi {...ui} onUpgrade={handleUpgrade} onHome={() => goHomeRef.current?.()} />
+      <GameUi 
+        {...ui} 
+        onUpgrade={handleUpgrade} 
+        onHome={() => goHomeRef.current?.()} 
+        identity={identity}
+        onHatch={handleHatch}
+        onEvolved={(newLevel, newInventory) => {
+          if (identityRef.current) {
+            const updated = { ...identityRef.current, evolution_lvl: newLevel, inventory: newInventory };
+            saveIdentity(updated);
+            setIdentity(updated);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -55,3 +55,51 @@ export function saveUpgrades(u: Upgrades): void {
     localStorage.setItem(UPGRADES_KEY, JSON.stringify(u));
   } catch {}
 }
+
+const IDENTITY_KEY = "sjs-identity";
+
+export type Inventory = { satellite: number; can: number; bolt: number; spring: number };
+
+export type Identity = {
+  name: string;
+  secret_token: string;
+  inventory?: Inventory;
+  evolution_lvl?: number;
+};
+
+export function loadIdentity(): Identity | null {
+  try {
+    const raw = localStorage.getItem(IDENTITY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+export function saveIdentity(id: Identity): void {
+  try {
+    localStorage.setItem(IDENTITY_KEY, JSON.stringify(id));
+  } catch {}
+}
+
+const RANK_KEY = "sjs-rank";
+
+export type RankInfo = {
+  highestRank: number | null;
+  totalRank: number | null;
+};
+
+export function loadRank(): RankInfo {
+  try {
+    const raw = localStorage.getItem(RANK_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { highestRank: null, totalRank: null };
+}
+
+export function saveRank(r: RankInfo): void {
+  try {
+    localStorage.setItem(RANK_KEY, JSON.stringify(r));
+  } catch {}
+}
+
+

@@ -39,6 +39,14 @@
 - **[NEW]** `window.history.pushState`를 활용하여 캔버스 재마운트 없이 메인(`/`)과 플레이(`/play`) 경로간 섈로우(Shallow) 라우팅 전환 구현
 - **[NEW]** 게임 중 메인 화면으로 언제든 돌아갈 수 있는 `HOME` 버튼 추가 및 즉각적인 상태 저장 로직 연동
 
+### Phase 6: 메타 프로그레션 및 백엔드 API (Supabase)
+- **[NEW]** Supabase 연결 및 `pets` 테이블 스키마 작성 (Row Level Security 정책 설정)
+- **[NEW]** `POST /api/pets/hatch`, `sync`, `evolve` API 생성으로 서버측 데이터 갱신 로직 구현
+- **[NEW]** 전 세계 실시간 랭킹 시스템(단판 최고점 및 누적점수) 연동 및 게임오버 화면 결과 렌더링 (`▲ 2위` 상승 연출)
+- **[NEW]** 개별 쓰레기 종류(볼트, 캔, 스프링, 위성) 추적 시스템 추가 및 인벤토리 팝업 UI 구현
+- **[NEW]** 쓰레기 레시피 기반 5단계 펫 진화(Evolution) 시스템 추가: 진화 시 픽셀 아트 외형 변경 및 전용 패시브 스킬(자석 증가, 실드 등) 획득
+- **[NEW]** 서버 렌더링과 로컬스토리지 충돌(Hydration Mismatch) 해결을 위한 `next/dynamic` 및 클라이언트 렌더링 초기화 최적화
+
 ## 📅 다음 목표 (Next Steps)
 모든 백로그와 다음 개발 목표는 `kanban/todo/` 및 `kanban/backlog/` 폴더의 문서를 확인하세요. 
 - 최우선 과제: **궤도 추적 (Orbit Tracking)** (`kanban/todo/orbit-tracking.md`)
