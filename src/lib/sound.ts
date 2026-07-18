@@ -11,16 +11,55 @@
 // ============================================================================
 
 let audio: AudioContext | null = null;
+let audioUnlocked = false;
 
 /** 사용자 제스처 핸들러 안에서 호출: 오디오를 켜거나(1회) 잠든 컨텍스트를 깨운다. */
 export function ensureAudio(): void {
   try {
-    if (!audio) audio = new AudioContext();
+  try {
+    if (!audio) audio = new (window.AudioContext || (window as any).webkitAudioContext)();
     // 모바일에서 탭 전환 등으로 suspended가 되면 다시 깨워 준다.
     if (audio.state === "suspended") void audio.resume();
   } catch {
     audio = null; // 미지원 환경 — 이후 재생 함수들이 전부 조용히 빠져나간다.
   }
+}
+
+/** 
+ * 모바일(특히 iOS Safari) 환경에서 완벽한 오디오 잠금 해제를 위해
+ * 화면의 첫 터치(touchstart/touchend) 이벤트에 바인딩하는 함수입니다.
+ */
+export function initAudioListener(): void {
+  if (typeof window === "undefined") return;
+  
+  const unlock = () => {
+    if (audioUnlocked) return;
+    try {
+      if (!audio) audio = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audio.state === "suspended") void audio.resume();
+      
+      // 더미 무음 오실레이터를 재생시켜 모바일 브라우저의 오디오 락을 확실히 풉니다.
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      gain.gain.value = 0;
+      osc.connect(gain);
+      gain.connect(audio.destination);
+      osc.start(0);
+      osc.stop(audio.currentTime + 0.1);
+      
+      audioUnlocked = true;
+      
+      window.removeEventListener("touchstart", unlock, true);
+      window.removeEventListener("touchend", unlock, true);
+      window.removeEventListener("click", unlock, true);
+    } catch {
+      // 무시
+    }
+  };
+
+  window.addEventListener("touchstart", unlock, { once: true, capture: true });
+  window.addEventListener("touchend", unlock, { once: true, capture: true });
+  window.addEventListener("click", unlock, { once: true, capture: true });
 }
 
 /** useEffect 정리 단계에서 호출: 컨텍스트를 닫아 리소스를 돌려준다 (§12). */

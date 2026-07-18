@@ -29,6 +29,7 @@ import { loadBest, saveBest, loadUpgrades, saveUpgrades, type Upgrades } from "@
 import {
   disposeAudio,
   ensureAudio,
+  initAudioListener,
   playEat,
   playGameOver,
   playHit,
@@ -114,6 +115,8 @@ export default function JoopsGame() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
+
+    initAudioListener(); // 모바일 사운드 잠금 해제
 
     let { w, h } = fitCanvas(canvas);
 
