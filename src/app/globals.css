@@ -5,9 +5,16 @@
 @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'NeoDunggeunmo';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.3/NeoDunggeunmo.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
 /* Tailwind 4 스타일 테마 확장 — font-pixel 유틸리티로 쓸 수 있게 등록 */
 @theme {
-  --font-pixel: "Press Start 2P", monospace;
+  --font-pixel: "Press Start 2P", "NeoDunggeunmo", monospace;
 }
 
 html,

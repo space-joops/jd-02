@@ -158,10 +158,11 @@ export function GameUi({
       }}
     >
       {/* ---- HUD: 왼쪽 점수, 가운데 홈, 오른쪽 하트 ---- */}
-      <div className="flex items-start justify-between px-5 pt-3 text-3xl tracking-widest relative">
-        <div className="z-10">{score}</div>
-        
-        {phase !== "title" && (
+      {/* ---- HUD: 왼쪽 점수, 가운데 홈, 오른쪽 하트 (게임 중, 게임 오버 시에만 노출) ---- */}
+      {phase !== "title" && (
+        <div className="flex items-start justify-between px-5 pt-3 text-3xl tracking-widest relative z-50">
+          <div className="z-10 text-white" style={{ textShadow: "2px 2px 0 #000" }}>{score}</div>
+          
           <div className="absolute left-1/2 -translate-x-1/2 top-3 z-10">
             <button 
               onClick={(e) => { e.stopPropagation(); onHome?.(); }}
@@ -170,17 +171,17 @@ export function GameUi({
               HOME
             </button>
           </div>
-        )}
 
-        <div className="z-10">
-          {/* 장식용 하트 문자는 aria-hidden, 실제 정보는 sr-only 텍스트로 */}
-          <span aria-hidden style={{ color: COLORS.heart }}>
-            {"♥".repeat(hearts)}
-            <span className="opacity-40">{"♡".repeat(Math.max(0, 3 - hearts))}</span>
-          </span>
-          <span className="sr-only">Hearts: {hearts}</span>
+          <div className="z-10">
+            {/* 장식용 하트 문자는 aria-hidden, 실제 정보는 sr-only 텍스트로 */}
+            <span aria-hidden style={{ color: COLORS.heart, textShadow: "2px 2px 0 #000" }}>
+              {"♥".repeat(hearts)}
+              <span className="opacity-40">{"♡".repeat(Math.max(0, 3 - hearts))}</span>
+            </span>
+            <span className="sr-only">Hearts: {hearts}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ---- 알 부화 (최초 접속) ---- */}
       {phase === "title" && !identity && (
