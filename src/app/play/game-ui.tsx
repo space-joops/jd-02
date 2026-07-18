@@ -69,14 +69,18 @@ export function GameUi({
   }, []);
 
   const handleInstallClick = () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt().catch(() => {}); // 브라우저 고유의 설치 프롬프트 띄우기
-    deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === "accepted") {
-        console.log("User accepted the install prompt");
-      }
-      setDeferredPrompt(null); // 한 번 물어봤으면 버튼 숨기기
-    });
+    if (deferredPrompt) {
+      deferredPrompt.prompt().catch(() => {}); // 브라우저 고유의 설치 프롬프트 띄우기
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === "accepted") {
+          console.log("User accepted the install prompt");
+        }
+        setDeferredPrompt(null); // 한 번 물어봤으면 버튼은 유지되지만 prompt는 소진됨
+      });
+    } else {
+      // 이벤트가 없거나 지원하지 않는 기기(iOS 등)를 위한 안내창
+      alert("앱 설치 팝업이 지원되지 않는 환경입니다.\\n브라우저 메뉴(공유 또는 설정)에서 '홈 화면에 추가'나 '앱 설치'를 직접 선택해주세요.");
+    }
   };
 
   const renderUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, name: string, maxLvl: number, baseCost: number) => {
@@ -126,18 +130,16 @@ export function GameUi({
       {/* ---- 타이틀 & 상점 ---- */}
       {phase === "title" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center leading-loose">
-          {/* PWA 설치 버튼 (지원되는 환경이고 아직 설치되지 않았을 때만 표시됨) */}
-          {deferredPrompt && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // 캔버스 탭 이벤트 무시
-                handleInstallClick();
-              }}
-              className="absolute top-6 left-6 px-3 py-2 bg-[#ff8080] text-black text-xs md:text-sm font-bold rounded shadow-lg pointer-events-auto hover:bg-white transition-colors"
-            >
-              ⬇️ APP INSTALL
-            </button>
-          )}
+          {/* PWA 설치 버튼 (항상 표시됨) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // 캔버스 탭 이벤트 무시
+              handleInstallClick();
+            }}
+            className="absolute top-6 left-6 px-3 py-2 bg-[#ff8080] text-black text-xs md:text-sm font-bold rounded shadow-lg pointer-events-auto hover:bg-white transition-colors"
+          >
+            ⬇️ APP INSTALL
+          </button>
 
           <div className="absolute top-6 right-6 text-xl text-[#ffd166]" style={{ textShadow: "2px 2px 0 #000" }}>
             TOTAL JUNK: {upgrades.totalJunk}
