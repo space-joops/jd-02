@@ -1,3 +1,5 @@
+"use client";
+
 // ============================================================================
 // game-ui.tsx — HUD · 타이틀 · 게임오버 오버레이
 //
@@ -7,6 +9,7 @@
 // 정보는 HTML 텍스트로 전달 (스크린리더가 읽을 수 있게, §13).
 // ============================================================================
 
+import { useState, useEffect } from "react";
 import { COLORS } from "@/lib/constants";
 import { type Upgrades } from "@/lib/storage";
 
@@ -31,6 +34,30 @@ export function GameUi({
   upgrades,
   onUpgrade,
 }: GameUiState) {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    // PWA Install Prompt 이벤트를 캡처합니다.
+    const handler = (e: any) => {
+      // Chrome 등에서 자동으로 하단에 미니 인포바가 뜨는 것을 방지
+      e.preventDefault();
+      // 이벤트를 보관해두었다가 사용자가 버튼을 누를 때 호출
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt(); // 브라우저 고유의 설치 프롬프트 띄우기
+    deferredPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === "accepted") {
+        console.log("User accepted the install prompt");
+      }
+      setDeferredPrompt(null); // 한 번 물어봤으면 버튼 숨기기
+    });
+  };
 
   const renderUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, name: string, maxLvl: number, baseCost: number) => {
     const lvl = upgrades[type];
@@ -79,6 +106,19 @@ export function GameUi({
       {/* ---- 타이틀 & 상점 ---- */}
       {phase === "title" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center leading-loose">
+          {/* PWA 설치 버튼 (지원되는 환경이고 아직 설치되지 않았을 때만 표시됨) */}
+          {deferredPrompt && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // 캔버스 탭 이벤트 무시
+                handleInstallClick();
+              }}
+              className="absolute top-6 left-6 px-3 py-2 bg-[#ff8080] text-black text-xs md:text-sm font-bold rounded shadow-lg pointer-events-auto hover:bg-white transition-colors"
+            >
+              ⬇️ APP INSTALL
+            </button>
+          )}
+
           <div className="absolute top-6 right-6 text-xl text-[#ffd166]" style={{ textShadow: "2px 2px 0 #000" }}>
             TOTAL JUNK: {upgrades.totalJunk}
           </div>
