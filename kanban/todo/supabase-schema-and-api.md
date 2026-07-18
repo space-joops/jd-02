@@ -11,7 +11,7 @@
 ### Table: `pets`
 | Column | Type | Constraints | Description |
 |---|---|---|---|
-| `name` | `text` | **Primary Key**, `^[A-Z0-9]+$` | 펫의 고유 이름 (오직 영대문자/숫자, 최대 12자) |
+| `name` | `text` | **Primary Key** | 펫의 고유 이름 (모든 언어 가능, 최대 12자) |
 | `secret_token` | `uuid` | Not Null, Default `uuid_generate_v4()` | 클라이언트 `localStorage`에 발급할 보안 인증 키 (해킹 방지) |
 | `highest_score` | `integer` | Default `0` | 단판 최고 점수 (High Score 리더보드용) |
 | `total_score` | `bigint` | Default `0` | 누적 총 점수 (Cumulative 리더보드용) |

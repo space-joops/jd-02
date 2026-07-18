@@ -189,12 +189,12 @@ export function GameUi({
           <h2 className="text-2xl text-white font-bold" style={{ textShadow: "2px 2px 0 #000" }}>우주 펫 분양소</h2>
           <p className="text-sm text-gray-300 max-w-xs leading-relaxed">
             나만의 고유한 우주 펫을 키워보세요!<br/>
-            이름은 전 세계에 단 하나만 존재합니다.
+            이름은 전 세계에 단 하나만 존재합니다. (최대 12자)
           </p>
           <input 
             type="text" 
             value={hatchName}
-            onChange={(e) => setHatchName(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12))}
+            onChange={(e) => setHatchName(e.target.value.slice(0, 12))}
             placeholder="PET NAME"
             className="mt-4 px-4 py-2 bg-gray-900 border border-gray-500 rounded text-center text-xl text-white outline-none focus:border-[#66fcf1] transition-colors"
             disabled={isHatching}

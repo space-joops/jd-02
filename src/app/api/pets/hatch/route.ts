@@ -4,10 +4,11 @@ import { supabase } from "@/lib/supabase";
 export async function POST(req: Request) {
   try {
     const { name } = await req.json();
+    const cleanName = typeof name === "string" ? name.trim() : "";
 
-    if (!name || typeof name !== "string" || !/^[A-Z0-9]+$/.test(name) || name.length > 12) {
+    if (!cleanName || cleanName.length > 12) {
       return NextResponse.json(
-        { success: false, error: "이름은 12자 이하의 영문 대문자와 숫자만 가능합니다." },
+        { success: false, error: "이름은 공백 제외 1자 이상 12자 이하로 지어주세요." },
         { status: 400 }
       );
     }
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
     // secret_token is generated automatically by uuid_generate_v4() in the DB
     const { data, error } = await supabase
       .from("pets")
-      .insert([{ name }])
+      .insert([{ name: cleanName }])
       .select("name, secret_token, evolution_lvl, highest_score, total_score, inventory, stats")
       .single();
 
