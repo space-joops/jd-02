@@ -183,9 +183,10 @@ export function GameUi({
               e.stopPropagation(); // 캔버스 탭 이벤트 무시
               handleInstallClick();
             }}
-            className="mt-4 px-5 py-3 bg-[#ff8080] text-black text-sm md:text-base font-bold rounded-lg shadow-lg pointer-events-auto hover:bg-white transition-colors"
+            className="mt-6 animate-pulse text-xl md:text-2xl font-bold pointer-events-auto hover:opacity-70 transition-opacity"
+            style={{ color: COLORS.heart, textShadow: "2px 2px 0 #000" }}
           >
-            {isIosNonSafari ? "⬇️ 사파리로 열고 앱 설치하기" : "⬇️ APP INSTALL"}
+            {isIosNonSafari ? "⬇️ 사파리로 열고 앱 설치" : "⬇️ APP INSTALL"}
           </button>
         </div>
       )}
