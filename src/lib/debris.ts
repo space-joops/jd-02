@@ -104,113 +104,65 @@ export function drawJunk(
   ctx.save();
   ctx.translate(j.x, j.y);
   ctx.rotate(j.rot);
-  ctx.scale(scale, scale);
-  ctx.lineWidth = Math.max(1.5, s * 0.12);
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
+  
+  // Pixel grid scaling
+  ctx.scale(scale * (s / 4), scale * (s / 4));
+  ctx.imageSmoothingEnabled = false;
 
   switch (j.kind) {
     case "satellite": {
-      // 몸통 사각형 + 양쪽 태양전지판
       ctx.fillStyle = JUNK_COLORS.satellite;
-      // 전지판 — 몸통보다 연하게 (같은 색에 알파만 곱해서)
-      ctx.save();
-      ctx.globalAlpha *= 0.55;
-      ctx.fillRect(-s * 1.5, -s * 0.35, s * 0.8, s * 0.7); // 왼쪽 패널
-      ctx.fillRect(s * 0.7, -s * 0.35, s * 0.8, s * 0.7); // 오른쪽 패널
-      ctx.restore();
-      ctx.fillRect(-s * 0.6, -s * 0.5, s * 1.2, s); // 몸통
-      ctx.strokeStyle = COLORS.space;
-      ctx.strokeRect(-s * 0.6, -s * 0.5, s * 1.2, s);
+      ctx.fillRect(-4, -1, 3, 2); // left panel
+      ctx.fillRect(1, -1, 3, 2); // right panel
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-1, -2, 2, 4); // body gap
+      ctx.fillStyle = JUNK_COLORS.satellite;
+      ctx.fillRect(-2, -3, 4, 6); // main body
       break;
     }
     case "bolt": {
-      // 육각형 + 가운데 구멍
       ctx.fillStyle = JUNK_COLORS.bolt;
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
-        const px = Math.cos(a) * s;
-        const py = Math.sin(a) * s;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = COLORS.space;
-      ctx.stroke();
-      ctx.fillStyle = COLORS.space; // 구멍은 배경색으로 뚫린 것처럼
-      ctx.beginPath();
-      ctx.arc(0, 0, s * 0.35, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(-2, -3, 4, 6);
+      ctx.fillRect(-3, -2, 6, 4);
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-1, -1, 2, 2); // Hole
       break;
     }
     case "can": {
-      // 둥근 사각형(캔 몸통) + 위아래 뚜껑 선
       ctx.fillStyle = JUNK_COLORS.can;
-      ctx.beginPath();
-      ctx.roundRect(-s * 0.55, -s * 0.8, s * 1.1, s * 1.6, s * 0.25);
-      ctx.fill();
-      ctx.strokeStyle = COLORS.space;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(-s * 0.55, -s * 0.45);
-      ctx.lineTo(s * 0.55, -s * 0.45);
-      ctx.stroke();
+      ctx.fillRect(-2, -3, 4, 6);
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-2, -2, 4, 1);
+      ctx.fillRect(-2, 2, 4, 1);
       break;
     }
     case "spring": {
-      // 지그재그 선 — 채움 없는 유일한 낙하물이라 선을 굵게
-      ctx.strokeStyle = JUNK_COLORS.spring;
-      ctx.lineWidth = s * 0.3;
-      ctx.beginPath();
-      const coils = 4;
-      for (let i = 0; i <= coils; i++) {
-        const py = -s + (i / coils) * s * 2;
-        const px = (i % 2 === 0 ? -1 : 1) * s * 0.55;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.stroke();
+      ctx.fillStyle = JUNK_COLORS.spring;
+      ctx.fillRect(-2, -4, 2, 1);
+      ctx.fillRect(0, -3, 2, 1);
+      ctx.fillRect(-2, -2, 2, 1);
+      ctx.fillRect(0, -1, 2, 1);
+      ctx.fillRect(-2, 0, 2, 1);
+      ctx.fillRect(0, 1, 2, 1);
+      ctx.fillRect(-2, 2, 2, 1);
+      ctx.fillRect(0, 3, 2, 1);
       break;
     }
     case "hazard": {
-      // 뾰족한 스파이크 폴리곤.
-      // 그림은 가시 끝까지 size×1.5 — 판정(size×0.75)의 두 배다.
-      // "보이는 것보다 판정이 작다"는 황금률(§7)이 여기서 나온다.
       ctx.fillStyle = JUNK_COLORS.hazard;
-      ctx.strokeStyle = JUNK_COLORS.hazard;
-      ctx.beginPath();
-      const spikes = 10;
-      for (let i = 0; i < spikes * 2; i++) {
-        const a = (i / (spikes * 2)) * Math.PI * 2;
-        const radius = i % 2 === 0 ? s * 1.5 : s * 0.7; // 바깥 가시 / 안쪽 골
-        const px = Math.cos(a) * radius;
-        const py = Math.sin(a) * radius;
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.closePath();
-      ctx.save();
-      ctx.globalAlpha *= 0.55; // 채움은 연하게, 외곽선은 진하게
-      ctx.fill();
-      ctx.restore();
-      ctx.stroke();
+      ctx.fillRect(-1, -4, 2, 8); // Vert
+      ctx.fillRect(-4, -1, 8, 2); // Horiz
+      ctx.fillRect(-2, -2, 4, 4); // Core
+      ctx.fillStyle = COLORS.space;
+      ctx.fillRect(-1, -1, 2, 2);
       break;
     }
     case "fuel": {
-      // 배터리 모양 연료 아이템
       ctx.fillStyle = JUNK_COLORS.fuel;
-      ctx.fillRect(-s * 0.4, -s * 0.7, s * 0.8, s * 1.4);
-      ctx.strokeStyle = COLORS.space;
-      ctx.strokeRect(-s * 0.4, -s * 0.7, s * 0.8, s * 1.4);
-      // 배터리 위쪽 전극
-      ctx.fillRect(-s * 0.2, -s * 0.9, s * 0.4, s * 0.2);
+      ctx.fillRect(-2, -3, 4, 6); // Battery body
+      ctx.fillRect(-1, -4, 2, 1); // Tip
       ctx.fillStyle = COLORS.space;
-      ctx.font = `bold ${Math.floor(s)}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText("F", 0, 0);
+      ctx.fillRect(-1, -1, 2, 2); // F symbol
       break;
     }
   }

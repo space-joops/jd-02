@@ -24,38 +24,28 @@ export function drawMascot(
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.translate(x, y);
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
+  ctx.imageSmoothingEnabled = false;
 
-  // 몸통 — 민트 원 + 어두운 외곽선 (배경과 분리돼 보이게)
+  // Pixel scaling base on radius
+  const scale = r / 4;
+  ctx.scale(scale, scale);
+
   ctx.fillStyle = COLORS.mascot;
-  ctx.strokeStyle = COLORS.space;
-  ctx.lineWidth = Math.max(2, r * 0.1);
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
+  
+  // Pixel art slime body
+  ctx.fillRect(-2, -4, 4, 1);
+  ctx.fillRect(-3, -3, 6, 1);
+  ctx.fillRect(-4, -2, 8, 5);
+  ctx.fillRect(-3, 3, 2, 1);
+  ctx.fillRect(1, 3, 2, 1);
 
-  // 눈 — 흰자 + 눈동자. 치수는 전부 r의 배수 (비례 기반, §11)
-  const eyeX = r * 0.38;
-  const eyeY = -r * 0.18;
-  ctx.fillStyle = COLORS.ink;
-  ctx.beginPath();
-  ctx.arc(-eyeX, eyeY, r * 0.2, 0, Math.PI * 2);
-  ctx.arc(eyeX, eyeY, r * 0.2, 0, Math.PI * 2);
-  ctx.fill();
+  // Eyes
   ctx.fillStyle = COLORS.space;
-  ctx.beginPath();
-  ctx.arc(-eyeX, eyeY, r * 0.09, 0, Math.PI * 2);
-  ctx.arc(eyeX, eyeY, r * 0.09, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.fillRect(-2, -1, 1, 1);
+  ctx.fillRect(1, -1, 1, 1);
 
-  // 입 — "입 큰" 친구답게 아래쪽 절반을 크게 차지하는 반원
-  ctx.fillStyle = COLORS.space;
-  ctx.beginPath();
-  ctx.arc(0, r * 0.22, r * 0.42, 0, Math.PI);
-  ctx.closePath();
-  ctx.fill();
+  // Mouth
+  ctx.fillRect(-1, 1, 2, 2);
 
   ctx.restore();
 }

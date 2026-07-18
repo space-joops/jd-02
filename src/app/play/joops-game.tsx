@@ -71,10 +71,10 @@ const TUNE = {
   joystickMaxRadius: 60,
   maxFuel: 3000,
   fuelRegen: 600,
-  thrustSpeeds: [100, 250, 450], // 속도 더 낮춤
-  thrustCosts: [10, 40, 100], // 소모량 2배 증가
+  thrustSpeeds: [100, 250, 450],
+  thrustCosts: [20, 80, 200], // 소모량 기존 대비 4배 (방금 2배에서 2배 더)
   friction: 1.2, // 우주 관성: 천천히 감소하는 마찰
-  minSpeed: 30, // 최소 유지 속도
+  minSpeed: 45, // 최소 유지 속도 (1.5배 증가)
 } as const;
 
 type Phase = "title" | "playing" | "over";
@@ -387,22 +387,33 @@ export default function JoopsGame() {
           ctx.translate(mascot.x, mascot.y);
           ctx.rotate(Math.atan2(dy, dx)); // 이동 방향을 바라보게 회전
           
-          // 강도에 따른 불꽃 크기와 떨림
-          const flameLengths = [mascot.r * 1.5, mascot.r * 2.2, mascot.r * 3.5];
-          const flameWidths = [mascot.r * 0.5, mascot.r * 0.8, mascot.r * 1.3];
-          const len = flameLengths[thrustLevel] * (0.7 + Math.random() * 0.6); // 떨림 효과
-          const wid = flameWidths[thrustLevel];
-          
-          ctx.beginPath();
-          ctx.moveTo(-mascot.r + 5, wid / 2);
-          ctx.lineTo(-mascot.r - len, 0); // 꼬리(불꽃 끝)
-          ctx.lineTo(-mascot.r + 5, -wid / 2);
-          ctx.closePath();
-          
+          // 픽셀 아트 스타일의 도트 불꽃 (사각형)
+          const ps = mascot.r / 4; // 픽셀 1칸 크기
           const thrustColors = ["#8ecbff", "#ffd166", "#ff8080"];
           ctx.fillStyle = thrustColors[thrustLevel];
           ctx.globalAlpha = 0.8;
-          ctx.fill();
+          
+          const flicker = Math.random() > 0.4 ? 0 : ps; // 떨림 효과용 픽셀 시프트
+          
+          // 1단계 불꽃 (몸통에 붙은 기본 픽셀 블록)
+          ctx.fillRect(-mascot.r - ps + flicker, -ps, ps * 2, ps * 2);
+          
+          // 2단계 불꽃 (더 길게 늘어지는 픽셀 블록)
+          if (thrustLevel >= 1) {
+            ctx.fillRect(-mascot.r - ps * 3.5 + flicker, -ps * 0.8, ps * 1.6, ps * 1.6);
+          }
+          
+          // 3단계 불꽃 (강한 추진 시 끝부분에 튀는 픽셀 파티클)
+          if (thrustLevel >= 2) {
+            ctx.fillRect(-mascot.r - ps * 5.5 + flicker, -ps * 0.5, ps, ps);
+            // 흩날리는 서브 픽셀 파티클
+            if (Math.random() > 0.5) {
+              ctx.fillRect(-mascot.r - ps * 4, ps, ps, ps);
+            }
+            if (Math.random() > 0.5) {
+              ctx.fillRect(-mascot.r - ps * 4, -ps * 2, ps, ps);
+            }
+          }
           ctx.restore();
         }
       }

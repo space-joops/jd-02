@@ -40,14 +40,13 @@ export const JUNK_COLORS: Record<JunkKind, string> = {
 // ----------------------------------------------------------------------------
 
 /** 먹이를 먹었을 때 랜덤으로 하나 뽑아 띄우는 팝업 문구. */
-export const EAT_WORDS = ["냠!", "냠냠!", "꿀꺽!", "맛있다!", "옴뇸뇸"];
+export const EAT_WORDS = ["YUM!", "GULP!", "TASTY!", "DELISH!", "NICE!"];
 
 /** 가시에 찔렸을 때의 팝업 문구. */
-export const HIT_WORDS = ["아야!", "따끔!", "아이코!", "뾰족해!"];
+export const HIT_WORDS = ["OUCH!", "YIKES!", "BOO!", "ARGH!"];
 
 /**
  * 캔버스 글자용 폰트 스택.
- * Gaegu는 globals.css에서 웹폰트로 불러온다 — 로드 전이나 오프라인일 때를
- * 대비해 폴백을 함께 적는다 (부가 기능이 게임을 죽이면 안 된다, §12).
+ * 레트로 감성을 위한 픽셀 폰트로 교체.
  */
-export const CANVAS_FONT = `"Gaegu", "Comic Sans MS", cursive`;
+export const CANVAS_FONT = `"Press Start 2P", monospace`;

@@ -58,12 +58,10 @@ export function drawBackdrop(
   for (let i = 0; i < STAR_COUNT; i++) {
     const x = hash(i * 3 + 1) * w;
     const y = hash(i * 3 + 2) * h;
-    const size = 1 + hash(i * 3 + 3) * 1.6;
+    const size = Math.floor(1 + hash(i * 3 + 3) * 1.6) * 2;
     ctx.save();
     ctx.globalAlpha *= 0.25 + hash(i * 7 + 5) * 0.5; // 별마다 밝기를 다르게
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(Math.floor(x), Math.floor(y), size, size); // Pixel star
     ctx.restore();
   }
   ctx.restore();
