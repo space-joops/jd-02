@@ -164,9 +164,6 @@ export function GameUi({
           >
             SPACE JOOPS
           </h1>
-          <div className="text-xs md:text-sm text-gray-400 font-mono tracking-widest -mt-4 mb-2">
-            v{pkg.version}
-          </div>
           
           <div className="flex flex-col gap-2 w-full items-center z-10 my-2">
             {renderUpgrade("maxFuelLvl", "FUEL TANK", 5, 50)}
@@ -192,6 +189,10 @@ export function GameUi({
           >
             {isIosNonSafari ? "⬇️ 사파리로 열고 앱 설치" : "⬇️ APP INSTALL"}
           </button>
+
+          <div className="mt-8 text-xs md:text-sm text-gray-500 font-mono tracking-widest">
+            v{pkg.version}
+          </div>
         </div>
       )}
 
