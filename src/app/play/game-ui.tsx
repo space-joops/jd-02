@@ -22,6 +22,12 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+declare global {
+  interface Window {
+    deferredPrompt?: BeforeInstallPromptEvent | null;
+  }
+}
+
 export type GameUiState = {
   phase: "title" | "playing" | "over";
   score: number;
@@ -47,13 +53,13 @@ export function GameUi({
 
   useEffect(() => {
     const handleReady = () => {
-      if ((window as any).deferredPrompt) {
-        setDeferredPrompt((window as any).deferredPrompt);
+      if (window.deferredPrompt) {
+        setDeferredPrompt(window.deferredPrompt);
       }
     };
     
     // React가 마운트되기 전에 이미 이벤트가 발생했다면 바로 가져옵니다.
-    if ((window as any).deferredPrompt) {
+    if (window.deferredPrompt) {
       handleReady();
     }
     
