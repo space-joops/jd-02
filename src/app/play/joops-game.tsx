@@ -152,6 +152,7 @@ export default function JoopsGame() {
     let hearts = TUNE.hearts;
     let best = loadBest();
     let newBest = false;
+    let eatenJunkRun = { satellite: 0, can: 0, bolt: 0, spring: 0 };
 
     // --- Joystick State ---
     let joyActive = false;
@@ -206,6 +207,7 @@ export default function JoopsGame() {
       window.history.pushState(null, "", "/play");
       score = 0;
       eaten = 0;
+      eatenJunkRun = { satellite: 0, can: 0, bolt: 0, spring: 0 };
       hearts = TUNE.hearts;
       newBest = false;
       mascot.r = TUNE.startR;
@@ -245,7 +247,7 @@ export default function JoopsGame() {
             name: currentId.name,
             secret_token: currentId.secret_token,
             run_score: score,
-            eaten_junk: { can: eaten } // MVP: 임시로 전부 can으로 기록
+            eaten_junk: eatenJunkRun
           }),
         })
         .then(res => res.json())
@@ -306,6 +308,10 @@ export default function JoopsGame() {
       } else {
         score += 10;
         eaten += 1;
+        if (j.kind === "satellite" || j.kind === "can" || j.kind === "bolt" || j.kind === "spring") {
+          eatenJunkRun[j.kind]++;
+        }
+        
         const u = upgradesRef.current;
         upgradesRef.current = { ...u, totalJunk: u.totalJunk + 1 };
         
