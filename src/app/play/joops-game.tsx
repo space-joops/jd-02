@@ -25,7 +25,7 @@ import {
   stepJunk,
 } from "@/lib/debris";
 import { type Popup, drawPopup, makePopup, stepPopup } from "@/lib/effects";
-import { loadBest, saveBest, loadUpgrades, saveUpgrades, loadIdentity, saveIdentity, type Upgrades, type Identity } from "@/lib/storage";
+import { loadBest, saveBest, loadUpgrades, saveUpgrades, loadIdentity, saveIdentity, loadRank, saveRank, type Upgrades, type Identity } from "@/lib/storage";
 import {
   disposeAudio,
   ensureAudio,
@@ -37,7 +37,7 @@ import {
   playUpgrade,
   updateThrustSound,
 } from "@/lib/sound";
-import { GameUi, type GameUiState } from "./game-ui";
+import { GameUi, type GameUiState, type RankResult } from "./game-ui";
 
 // ----------------------------------------------------------------------------
 // TUNE — 손맛·판정·성장의 튜닝 상수 (숫자의 최종 원본, CLAUDE.md §15)
@@ -133,6 +133,7 @@ export default function JoopsGame() {
     best: 0,
     newBest: false,
     upgrades,
+    rankResult: null,
   });
 
   useEffect(() => {
@@ -185,7 +186,11 @@ export default function JoopsGame() {
     let overAt = 0; // 게임오버 시각 — 재시작 디바운스용
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
-    const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest, upgrades: upgradesRef.current });
+    const pushUi = (rankResult: RankResult | "loading" | "error" | null = null) => setUi(prev => ({ 
+      ...prev, 
+      phase, score, hearts, eaten, best, newBest, upgrades: upgradesRef.current,
+      ...(rankResult !== null ? { rankResult } : {})
+    }));
 
     // ------------------------------------------------------------------
     // 사건들
@@ -211,7 +216,7 @@ export default function JoopsGame() {
       invincible = 0;
       shake = 0;
       spawnTimer = 0;
-      pushUi();
+      pushUi(null); // Reset rank result on new game
     };
 
     const gameOver = () => {
@@ -227,11 +232,12 @@ export default function JoopsGame() {
       saveUpgrades(upgradesRef.current);
       updateThrustSound(0); // 엔진음 정지
       playGameOver();
-      pushUi();
-
-      // 서버에 동기화 (비동기 처리)
+      
       const currentId = identityRef.current;
       if (currentId) {
+        pushUi("loading");
+        const prevRank = loadRank();
+        
         fetch("/api/pets/sync", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -239,9 +245,37 @@ export default function JoopsGame() {
             name: currentId.name,
             secret_token: currentId.secret_token,
             run_score: score,
-            eaten_junk: { can: eaten } // MVP: 임시로 전부 can으로 기록 (추후 분리)
+            eaten_junk: { can: eaten } // MVP: 임시로 전부 can으로 기록
           }),
-        }).catch(e => console.error("Sync failed:", e));
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (!data.success) {
+            pushUi("error");
+            return;
+          }
+          
+          const newHighest = data.highest_score_rank;
+          const newTotal = data.total_score_rank;
+          
+          const highestDiff = prevRank.highestRank ? prevRank.highestRank - newHighest : 0;
+          const totalDiff = prevRank.totalRank ? prevRank.totalRank - newTotal : 0;
+          
+          saveRank({ highestRank: newHighest, totalRank: newTotal });
+          
+          pushUi({
+            highestRank: newHighest,
+            highestDiff,
+            totalRank: newTotal,
+            totalDiff
+          });
+        })
+        .catch(e => {
+          console.error("Sync failed:", e);
+          pushUi("error");
+        });
+      } else {
+        pushUi(null);
       }
     };
 

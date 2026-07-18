@@ -29,6 +29,13 @@ declare global {
   }
 }
 
+export type RankResult = {
+  highestRank: number;
+  highestDiff: number;
+  totalRank: number;
+  totalDiff: number;
+};
+
 export type GameUiState = {
   phase: "title" | "playing" | "over";
   score: number;
@@ -41,6 +48,7 @@ export type GameUiState = {
   onHome?: () => void;
   identity: Identity | null;
   onHatch?: (name: string) => Promise<string | void>;
+  rankResult?: RankResult | "loading" | "error" | null;
 };
 
 export function GameUi({
@@ -55,6 +63,7 @@ export function GameUi({
   onHome,
   identity,
   onHatch,
+  rankResult,
 }: GameUiState) {
   const [hatchName, setHatchName] = useState("");
   const [hatchError, setHatchError] = useState("");
@@ -261,7 +270,7 @@ export function GameUi({
 
       {/* ---- 게임오버 ---- */}
       {phase === "over" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/70 px-6 text-center leading-loose">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/80 px-6 text-center leading-loose pointer-events-auto z-50">
           <h2
             className="text-4xl md:text-5xl font-bold"
             style={{ color: COLORS.heart, textShadow: "4px 4px 0 #000" }}
@@ -277,8 +286,37 @@ export function GameUi({
           ) : (
             <p className="text-sm md:text-lg text-gray-400 mt-2">BEST: {best}</p>
           )}
+
+          {/* ---- 랭킹 표시 영역 ---- */}
+          <div className="mt-4 p-4 border border-gray-600 rounded-lg bg-gray-900/80 min-w-[280px]">
+            {rankResult === "loading" && <p className="text-gray-400 animate-pulse">우주 랭킹 집계 중...</p>}
+            {rankResult === "error" && <p className="text-red-400 text-sm">랭킹을 불러오지 못했습니다.</p>}
+            {rankResult && typeof rankResult === "object" && (
+              <div className="flex flex-col gap-3 text-sm md:text-base">
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2">
+                  <span className="text-gray-300">단판 최고점</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white font-bold">{rankResult.highestRank}위</span>
+                    {rankResult.highestDiff > 0 && <span className="text-green-400 animate-bounce">▲ {rankResult.highestDiff}</span>}
+                    {rankResult.highestDiff < 0 && <span className="text-red-400 text-xs">▼ {Math.abs(rankResult.highestDiff)}</span>}
+                    {rankResult.highestDiff === 0 && <span className="text-gray-500 text-xs">-</span>}
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">누적 총점수</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#ffd166] font-bold">{rankResult.totalRank}위</span>
+                    {rankResult.totalDiff > 0 && <span className="text-green-400 animate-bounce">▲ {rankResult.totalDiff}</span>}
+                    {rankResult.totalDiff < 0 && <span className="text-red-400 text-xs">▼ {Math.abs(rankResult.totalDiff)}</span>}
+                    {rankResult.totalDiff === 0 && <span className="text-gray-500 text-xs">-</span>}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <p
-            className="mt-8 animate-pulse text-2xl md:text-3xl"
+            className="mt-6 animate-pulse text-2xl md:text-3xl"
             style={{ color: COLORS.accent }}
           >
             TAP TO RESTART

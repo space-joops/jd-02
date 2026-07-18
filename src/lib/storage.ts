@@ -77,3 +77,25 @@ export function saveIdentity(id: Identity): void {
   } catch {}
 }
 
+const RANK_KEY = "sjs-rank";
+
+export type RankInfo = {
+  highestRank: number | null;
+  totalRank: number | null;
+};
+
+export function loadRank(): RankInfo {
+  try {
+    const raw = localStorage.getItem(RANK_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { highestRank: null, totalRank: null };
+}
+
+export function saveRank(r: RankInfo): void {
+  try {
+    localStorage.setItem(RANK_KEY, JSON.stringify(r));
+  } catch {}
+}
+
+
