@@ -16,7 +16,6 @@ let audioUnlocked = false;
 /** 사용자 제스처 핸들러 안에서 호출: 오디오를 켜거나(1회) 잠든 컨텍스트를 깨운다. */
 export function ensureAudio(): void {
   try {
-  try {
     if (!audio) audio = new (window.AudioContext || (window as any).webkitAudioContext)();
     // 모바일에서 탭 전환 등으로 suspended가 되면 다시 깨워 준다.
     if (audio.state === "suspended") void audio.resume();
