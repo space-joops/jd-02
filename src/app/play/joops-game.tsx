@@ -88,6 +88,7 @@ export default function JoopsGame() {
   const [upgrades, setUpgrades] = useState<Upgrades>(loadUpgrades());
   const upgradesRef = useRef(upgrades);
   upgradesRef.current = upgrades;
+  const goHomeRef = useRef<(() => void) | null>(null);
 
   const handleUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => {
     ensureAudio(); // 클릭 시 오디오 활성화 보장
@@ -205,6 +206,23 @@ export default function JoopsGame() {
       playGameOver();
       pushUi();
     };
+
+    /** 게임 중 메인 화면(타이틀)으로 돌아가기 */
+    const goHome = () => {
+      if (score > best) {
+        best = score;
+        saveBest(best);
+      }
+      setUpgrades(upgradesRef.current);
+      saveUpgrades(upgradesRef.current);
+      updateThrustSound(0); // 엔진음 정지
+      
+      phase = "title";
+      window.history.pushState(null, "", "/");
+      spawnTimer = TUNE.demoInterval; // 데모 모드를 위해 스폰 타이머 리셋
+      pushUi();
+    };
+    goHomeRef.current = goHome;
 
     /** 먹이 획득: 점수 + 성장 + "꿀꺽" 시작 + 팝업 + 소리 (§10 다중 피드백). */
     const eat = (j: Junk) => {
@@ -611,7 +629,7 @@ export default function JoopsGame() {
         className="absolute inset-0 h-full w-full touch-none"
         aria-label="스페이스 죽스 게임 화면"
       />
-      <GameUi {...ui} onUpgrade={handleUpgrade} />
+      <GameUi {...ui} onUpgrade={handleUpgrade} onHome={() => goHomeRef.current?.()} />
     </div>
   );
 }

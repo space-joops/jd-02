@@ -38,6 +38,7 @@ export type GameUiState = {
   newBest: boolean;
   upgrades: Upgrades;
   onUpgrade?: (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => void;
+  onHome?: () => void;
 };
 
 export function GameUi({
@@ -49,6 +50,7 @@ export function GameUi({
   newBest,
   upgrades,
   onUpgrade,
+  onHome,
 }: GameUiState) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIosNonSafari, setIsIosNonSafari] = useState(false);
@@ -139,10 +141,22 @@ export function GameUi({
         paddingTop: "env(safe-area-inset-top)",
       }}
     >
-      {/* ---- HUD: 왼쪽 점수, 오른쪽 하트 ---- */}
-      <div className="flex items-start justify-between px-5 pt-3 text-3xl tracking-widest">
-        <div>{score}</div>
-        <div>
+      {/* ---- HUD: 왼쪽 점수, 가운데 홈, 오른쪽 하트 ---- */}
+      <div className="flex items-start justify-between px-5 pt-3 text-3xl tracking-widest relative">
+        <div className="z-10">{score}</div>
+        
+        {phase !== "title" && (
+          <div className="absolute left-1/2 -translate-x-1/2 top-3 z-10">
+            <button 
+              onClick={(e) => { e.stopPropagation(); onHome?.(); }}
+              className="px-3 py-1 bg-black/50 hover:bg-white hover:text-black rounded border border-gray-600 text-sm md:text-base pointer-events-auto transition-colors"
+            >
+              HOME
+            </button>
+          </div>
+        )}
+
+        <div className="z-10">
           {/* 장식용 하트 문자는 aria-hidden, 실제 정보는 sr-only 텍스트로 */}
           <span aria-hidden style={{ color: COLORS.heart }}>
             {"♥".repeat(hearts)}
