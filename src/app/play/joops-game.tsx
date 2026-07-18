@@ -25,7 +25,7 @@ import {
   stepJunk,
 } from "@/lib/debris";
 import { type Popup, drawPopup, makePopup, stepPopup } from "@/lib/effects";
-import { loadBest, saveBest, loadUpgrades, saveUpgrades, type Upgrades } from "@/lib/storage";
+import { loadBest, saveBest, loadUpgrades, saveUpgrades, loadIdentity, saveIdentity, type Upgrades, type Identity } from "@/lib/storage";
 import {
   disposeAudio,
   ensureAudio,
@@ -88,7 +88,30 @@ export default function JoopsGame() {
   const [upgrades, setUpgrades] = useState<Upgrades>(loadUpgrades());
   const upgradesRef = useRef(upgrades);
   upgradesRef.current = upgrades;
+  
+  const [identity, setIdentity] = useState<Identity | null>(loadIdentity());
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
+
   const goHomeRef = useRef<(() => void) | null>(null);
+
+  const handleHatch = async (name: string): Promise<string | void> => {
+    try {
+      const res = await fetch("/api/pets/hatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!data.success) return data.error || "부화 실패";
+      
+      const newIdentity = { name: data.pet.name, secret_token: data.pet.secret_token };
+      saveIdentity(newIdentity);
+      setIdentity(newIdentity);
+    } catch {
+      return "네트워크 오류가 발생했습니다.";
+    }
+  };
 
   const handleUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => {
     ensureAudio(); // 클릭 시 오디오 활성화 보장
@@ -102,7 +125,7 @@ export default function JoopsGame() {
   };
 
   // React가 아는 유일한 게임 상태. HUD·오버레이가 이걸 그린다.
-  const [ui, setUi] = useState<Omit<GameUiState, "onUpgrade">>({
+  const [ui, setUi] = useState<Omit<GameUiState, "onUpgrade" | "onHome" | "identity" | "onHatch">>({
     phase: "title",
     score: 0,
     hearts: TUNE.hearts,
@@ -205,6 +228,21 @@ export default function JoopsGame() {
       updateThrustSound(0); // 엔진음 정지
       playGameOver();
       pushUi();
+
+      // 서버에 동기화 (비동기 처리)
+      const currentId = identityRef.current;
+      if (currentId) {
+        fetch("/api/pets/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: currentId.name,
+            secret_token: currentId.secret_token,
+            run_score: score,
+            eaten_junk: { can: eaten } // MVP: 임시로 전부 can으로 기록 (추후 분리)
+          }),
+        }).catch(e => console.error("Sync failed:", e));
+      }
     };
 
     /** 게임 중 메인 화면(타이틀)으로 돌아가기 */
@@ -551,6 +589,7 @@ export default function JoopsGame() {
       const y = e.clientY - rect.top;
 
       if (phase === "title") {
+        if (!identityRef.current) return; // 이름 짓기 전에는 터치 무시
         start();
       } else if (phase === "over") {
         // 죽는 순간 누르고 있던 손가락이 결과 화면을 스킵하는 사고 방지 (§4)
@@ -629,7 +668,13 @@ export default function JoopsGame() {
         className="absolute inset-0 h-full w-full touch-none"
         aria-label="스페이스 죽스 게임 화면"
       />
-      <GameUi {...ui} onUpgrade={handleUpgrade} onHome={() => goHomeRef.current?.()} />
+      <GameUi 
+        {...ui} 
+        onUpgrade={handleUpgrade} 
+        onHome={() => goHomeRef.current?.()} 
+        identity={identity}
+        onHatch={handleHatch}
+      />
     </div>
   );
 }

@@ -55,3 +55,25 @@ export function saveUpgrades(u: Upgrades): void {
     localStorage.setItem(UPGRADES_KEY, JSON.stringify(u));
   } catch {}
 }
+
+const IDENTITY_KEY = "sjs-identity";
+
+export type Identity = {
+  name: string;
+  secret_token: string;
+};
+
+export function loadIdentity(): Identity | null {
+  try {
+    const raw = localStorage.getItem(IDENTITY_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+export function saveIdentity(id: Identity): void {
+  try {
+    localStorage.setItem(IDENTITY_KEY, JSON.stringify(id));
+  } catch {}
+}
+

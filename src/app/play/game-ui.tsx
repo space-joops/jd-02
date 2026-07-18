@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from "react";
 import { COLORS } from "@/lib/constants";
-import { type Upgrades } from "@/lib/storage";
+import { type Upgrades, type Identity } from "@/lib/storage";
 import pkg from "../../../package.json";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -39,6 +39,8 @@ export type GameUiState = {
   upgrades: Upgrades;
   onUpgrade?: (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => void;
   onHome?: () => void;
+  identity: Identity | null;
+  onHatch?: (name: string) => Promise<string | void>;
 };
 
 export function GameUi({
@@ -51,7 +53,21 @@ export function GameUi({
   upgrades,
   onUpgrade,
   onHome,
+  identity,
+  onHatch,
 }: GameUiState) {
+  const [hatchName, setHatchName] = useState("");
+  const [hatchError, setHatchError] = useState("");
+  const [isHatching, setIsHatching] = useState(false);
+
+  const doHatch = async () => {
+    if (!hatchName || !onHatch) return;
+    setIsHatching(true);
+    setHatchError("");
+    const err = await onHatch(hatchName);
+    if (err) setHatchError(err);
+    setIsHatching(false);
+  };
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIosNonSafari, setIsIosNonSafari] = useState(false);
 
@@ -166,9 +182,41 @@ export function GameUi({
         </div>
       </div>
 
+      {/* ---- 알 부화 (최초 접속) ---- */}
+      {phase === "title" && !identity && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/90 px-6 text-center leading-loose z-50 pointer-events-auto">
+          <div className="text-7xl animate-bounce mb-2">🥚</div>
+          <h2 className="text-2xl text-white font-bold" style={{ textShadow: "2px 2px 0 #000" }}>우주 펫 분양소</h2>
+          <p className="text-sm text-gray-300 max-w-xs leading-relaxed">
+            나만의 고유한 우주 펫을 키워보세요!<br/>
+            이름은 전 세계에 단 하나만 존재합니다.
+          </p>
+          <input 
+            type="text" 
+            value={hatchName}
+            onChange={(e) => setHatchName(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12))}
+            placeholder="PET NAME"
+            className="mt-4 px-4 py-2 bg-gray-900 border border-gray-500 rounded text-center text-xl text-white outline-none focus:border-[#66fcf1] transition-colors"
+            disabled={isHatching}
+            maxLength={12}
+          />
+          {hatchError && <p className="text-red-400 text-sm">{hatchError}</p>}
+          <button 
+            onClick={doHatch}
+            disabled={isHatching || !hatchName}
+            className="mt-2 px-8 py-3 bg-[#66fcf1] text-black font-bold text-xl rounded hover:bg-white disabled:opacity-50 transition-colors"
+          >
+            {isHatching ? "부화 중..." : "HATCH!"}
+          </button>
+        </div>
+      )}
+
       {/* ---- 타이틀 & 상점 ---- */}
-      {phase === "title" && (
+      {phase === "title" && identity && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center leading-loose">
+          <div className="absolute top-6 left-6 text-xl text-[#66fcf1]" style={{ textShadow: "2px 2px 0 #000" }}>
+            PET: {identity.name}
+          </div>
           <div className="absolute top-6 right-6 text-xl text-[#ffd166]" style={{ textShadow: "2px 2px 0 #000" }}>
             TOTAL JUNK: {upgrades.totalJunk}
           </div>
