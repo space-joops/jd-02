@@ -46,15 +46,20 @@ export function GameUi({
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    // PWA Install Prompt 이벤트를 캡처합니다.
-    const handler = (e: Event) => {
-      // Chrome 등에서 자동으로 하단에 미니 인포바가 뜨는 것을 방지
-      e.preventDefault();
-      // 이벤트를 보관해두었다가 사용자가 버튼을 누를 때 호출
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    const handleReady = () => {
+      if ((window as any).deferredPrompt) {
+        setDeferredPrompt((window as any).deferredPrompt);
+      }
     };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    
+    // React가 마운트되기 전에 이미 이벤트가 발생했다면 바로 가져옵니다.
+    if ((window as any).deferredPrompt) {
+      handleReady();
+    }
+    
+    // 아직 발생하지 않았다면 이벤트를 기다립니다.
+    window.addEventListener("installPromptReady", handleReady);
+    return () => window.removeEventListener("installPromptReady", handleReady);
   }, []);
 
   const handleInstallClick = () => {
