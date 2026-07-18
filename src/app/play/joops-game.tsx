@@ -144,6 +144,10 @@ export default function JoopsGame() {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -757,7 +761,7 @@ export default function JoopsGame() {
       window.removeEventListener("resize", onResize);
       disposeAudio();
     };
-  }, []);
+  }, [mounted]);
 
   if (!mounted) {
     return <div className="fixed inset-0 bg-black"></div>;
