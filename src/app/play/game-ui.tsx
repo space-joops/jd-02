@@ -312,7 +312,7 @@ export function GameUi({
 
       {/* ---- 게임오버 ---- */}
       {phase === "over" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/80 px-6 text-center leading-loose pointer-events-auto z-50">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/80 px-6 text-center leading-loose z-50">
           <h2
             className="text-4xl md:text-5xl font-bold"
             style={{ color: COLORS.heart, textShadow: "4px 4px 0 #000" }}
