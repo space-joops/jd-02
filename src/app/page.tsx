@@ -1,8 +1,4 @@
-import dynamic from 'next/dynamic';
-
-const JoopsGame = dynamic(() => import('./play/joops-game'), {
-  ssr: false,
-});
+import JoopsGame from "./play/joops-game";
 
 export default function Home() {
   return <JoopsGame />;

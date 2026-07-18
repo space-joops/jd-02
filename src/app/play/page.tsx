@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import dynamic from 'next/dynamic';
-
-const JoopsGame = dynamic(() => import('./joops-game'), {
-  ssr: false,
-});
+import JoopsGame from "./joops-game";
 
 // "/play"의 얇은 껍데기 — 서버 컴포넌트.
 // 게임 본체(joops-game.tsx)는 클라이언트 컴포넌트라 메타데이터를 내보낼 수
