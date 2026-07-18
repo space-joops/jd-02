@@ -50,8 +50,16 @@ export function GameUi({
   onUpgrade,
 }: GameUiState) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isIosNonSafari, setIsIosNonSafari] = useState(false);
 
   useEffect(() => {
+    // 1. iOS Non-Safari 감지
+    const ua = navigator.userAgent.toLowerCase();
+    const isIos = /iphone|ipad|ipod/.test(ua);
+    const isSafari = /safari/.test(ua) && !/chrome|crios|fxios|opios|edgios|kakaotalk|naver|whale/.test(ua);
+    if (isIos && !isSafari) {
+      setIsIosNonSafari(true);
+    }
     const handleReady = () => {
       if (window.deferredPrompt) {
         setDeferredPrompt(window.deferredPrompt);
@@ -69,6 +77,22 @@ export function GameUi({
   }, []);
 
   const handleInstallClick = () => {
+    if (isIosNonSafari) {
+      navigator.clipboard.writeText(window.location.href).catch(() => {});
+      alert(
+        "📱 아이폰 앱 설치 안내\\n\\n" +
+        "아이폰은 '사파리(Safari)' 브라우저에서만 앱 설치가 가능합니다.\\n\\n" +
+        "1. 현재 게임 주소가 클립보드에 복사되었습니다.\\n" +
+        "2. 사파리 앱을 열고 주소를 붙여넣어 접속하세요.\\n" +
+        "3. 사파리 하단의 [공유] 버튼 ➡️ [홈 화면에 추가]를 누르세요."
+      );
+      // 카카오톡 인앱 브라우저인 경우 사파리로 강제 외부 실행 시도
+      if (/kakaotalk/.test(navigator.userAgent.toLowerCase())) {
+        window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(window.location.href)}`;
+      }
+      return;
+    }
+
     if (deferredPrompt) {
       deferredPrompt.prompt().catch(() => {}); // 브라우저 고유의 설치 프롬프트 띄우기
       deferredPrompt.userChoice.then((choiceResult) => {
@@ -78,8 +102,8 @@ export function GameUi({
         setDeferredPrompt(null); // 한 번 물어봤으면 버튼은 유지되지만 prompt는 소진됨
       });
     } else {
-      // 이벤트가 없거나 지원하지 않는 기기(iOS 등)를 위한 안내창
-      alert("앱 설치 팝업이 지원되지 않는 환경입니다.\\n브라우저 메뉴(공유 또는 설정)에서 '홈 화면에 추가'나 '앱 설치'를 직접 선택해주세요.");
+      // 이벤트가 없거나 지원하지 않는 일반 기기를 위한 안내창
+      alert("앱 설치 팝업이 지원되지 않는 환경입니다.\\n브라우저 하단 메뉴(공유 또는 설정)에서 '홈 화면에 추가'를 직접 선택해주세요.");
     }
   };
 
@@ -130,17 +154,6 @@ export function GameUi({
       {/* ---- 타이틀 & 상점 ---- */}
       {phase === "title" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center leading-loose">
-          {/* PWA 설치 버튼 (항상 표시됨) */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation(); // 캔버스 탭 이벤트 무시
-              handleInstallClick();
-            }}
-            className="absolute top-6 left-6 px-3 py-2 bg-[#ff8080] text-black text-xs md:text-sm font-bold rounded shadow-lg pointer-events-auto hover:bg-white transition-colors"
-          >
-            ⬇️ APP INSTALL
-          </button>
-
           <div className="absolute top-6 right-6 text-xl text-[#ffd166]" style={{ textShadow: "2px 2px 0 #000" }}>
             TOTAL JUNK: {upgrades.totalJunk}
           </div>
@@ -163,6 +176,17 @@ export function GameUi({
           >
             TAP TO START
           </p>
+
+          {/* PWA 설치 버튼 (항상 표시됨) - 탭 투 스타트 아래로 이동 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // 캔버스 탭 이벤트 무시
+              handleInstallClick();
+            }}
+            className="mt-4 px-5 py-3 bg-[#ff8080] text-black text-sm md:text-base font-bold rounded-lg shadow-lg pointer-events-auto hover:bg-white transition-colors"
+          >
+            {isIosNonSafari ? "⬇️ 사파리로 열고 앱 설치하기" : "⬇️ APP INSTALL"}
+          </button>
         </div>
       )}
 
