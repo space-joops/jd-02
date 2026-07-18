@@ -20,6 +20,7 @@ export function drawMascot(
   y: number,
   r: number,
   alpha = 1,
+  level = 1
 ): void {
   ctx.save();
   ctx.globalAlpha *= alpha;
@@ -30,22 +31,97 @@ export function drawMascot(
   const scale = r / 4;
   ctx.scale(scale, scale);
 
-  ctx.fillStyle = COLORS.mascot;
-  
-  // Pixel art slime body
-  ctx.fillRect(-2, -4, 4, 1);
-  ctx.fillRect(-3, -3, 6, 1);
-  ctx.fillRect(-4, -2, 8, 5);
-  ctx.fillRect(-3, 3, 2, 1);
-  ctx.fillRect(1, 3, 2, 1);
-
-  // Eyes
-  ctx.fillStyle = COLORS.space;
-  ctx.fillRect(-2, -1, 1, 1);
-  ctx.fillRect(1, -1, 1, 1);
-
-  // Mouth
-  ctx.fillRect(-1, 1, 2, 2);
+  if (level === 1) {
+    // Lv.1: Space Dust (Slime)
+    ctx.fillStyle = COLORS.mascot;
+    ctx.fillRect(-2, -4, 4, 1);
+    ctx.fillRect(-3, -3, 6, 1);
+    ctx.fillRect(-4, -2, 8, 5);
+    ctx.fillRect(-3, 3, 2, 1);
+    ctx.fillRect(1, 3, 2, 1);
+    ctx.fillStyle = COLORS.space;
+    ctx.fillRect(-2, -1, 1, 1);
+    ctx.fillRect(1, -1, 1, 1);
+    ctx.fillRect(-1, 1, 2, 2); // Mouth
+  } else if (level === 2) {
+    // Lv.2: Chubby Blackhole
+    ctx.fillStyle = COLORS.mascot;
+    ctx.fillRect(-3, -4, 6, 1);
+    ctx.fillRect(-4, -3, 8, 2);
+    ctx.fillRect(-5, -1, 10, 5);
+    ctx.fillRect(-4, 4, 8, 1);
+    ctx.fillStyle = COLORS.space;
+    ctx.fillRect(-2, 0, 4, 3); // Huge mouth
+    ctx.fillRect(-3, -2, 1, 1); // Eyes
+    ctx.fillRect(2, -2, 1, 1);
+  } else if (level === 3) {
+    // Lv.3: Cyborg Jaws
+    ctx.fillStyle = COLORS.mascot;
+    ctx.fillRect(-1, -6, 2, 2); // Fin
+    ctx.fillRect(-2, -4, 4, 1);
+    ctx.fillRect(-4, -3, 8, 3);
+    ctx.fillRect(-5, 0, 10, 2);
+    ctx.fillStyle = "#888"; // Metal Jaw
+    ctx.fillRect(-4, 2, 8, 3);
+    ctx.fillStyle = COLORS.space; // Eyes
+    ctx.fillRect(-3, -1, 1, 1);
+    ctx.fillStyle = COLORS.danger;
+    ctx.fillRect(2, -1, 1, 1);
+    ctx.fillStyle = "#fff"; // Teeth
+    ctx.fillRect(-3, 2, 1, 1);
+    ctx.fillRect(-1, 2, 1, 1);
+    ctx.fillRect(1, 2, 1, 1);
+    ctx.fillRect(3, 2, 1, 1);
+    ctx.fillStyle = COLORS.space; // Mouth inside
+    ctx.fillRect(-2, 3, 4, 1);
+  } else if (level === 4) {
+    // Lv.4: Mecha Behemoth
+    ctx.fillStyle = "#555"; 
+    ctx.fillRect(-5, -4, 10, 8);
+    ctx.fillStyle = COLORS.mascot;
+    ctx.fillRect(-4, -3, 8, 6);
+    ctx.fillStyle = "#888"; // Thrusters
+    ctx.fillRect(-6, -2, 2, 4);
+    ctx.fillRect(4, -2, 2, 4);
+    ctx.fillStyle = "#aaa"; // Armor
+    ctx.fillRect(-3, -4, 6, 2);
+    ctx.fillRect(-4, 2, 8, 2);
+    ctx.fillStyle = "#66fcf1"; // Visor
+    ctx.fillRect(-3, -1, 6, 2);
+    ctx.fillStyle = COLORS.space; // Intake
+    ctx.fillRect(-2, 3, 4, 2);
+    ctx.fillStyle = "#ff8080"; // Core
+    ctx.fillRect(-1, 3, 2, 1);
+  } else {
+    // Lv.5: Galactic Leviathan
+    ctx.fillStyle = "#2b00ff"; // Dark aura
+    ctx.fillRect(-6, -5, 12, 10);
+    ctx.fillStyle = "#4c00ff";
+    ctx.fillRect(-5, -4, 10, 8);
+    ctx.fillStyle = COLORS.mascot;
+    ctx.fillRect(-4, -3, 8, 6);
+    ctx.fillStyle = "#ffd166"; // Horns
+    ctx.fillRect(-5, -7, 2, 3);
+    ctx.fillRect(3, -7, 2, 3);
+    ctx.fillRect(-6, -8, 1, 2);
+    ctx.fillRect(5, -8, 1, 2);
+    ctx.fillStyle = "#ff0044"; // 6 Eyes
+    ctx.fillRect(-3, -2, 1, 1);
+    ctx.fillRect(2, -2, 1, 1);
+    ctx.fillRect(-4, -1, 1, 1);
+    ctx.fillRect(3, -1, 1, 1);
+    ctx.fillRect(-3, 0, 1, 1);
+    ctx.fillRect(2, 0, 1, 1);
+    ctx.fillStyle = COLORS.space; // Maw
+    ctx.fillRect(-3, 2, 6, 4);
+    ctx.fillStyle = "#fff"; // Teeth
+    ctx.fillRect(-3, 2, 1, 2);
+    ctx.fillRect(-1, 2, 1, 1);
+    ctx.fillRect(1, 2, 1, 1);
+    ctx.fillRect(2, 2, 1, 2);
+    ctx.fillRect(-2, 5, 1, 1);
+    ctx.fillRect(1, 5, 1, 1);
+  }
 
   ctx.restore();
 }

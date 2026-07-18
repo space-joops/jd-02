@@ -84,6 +84,7 @@ const TUNE = {
 type Phase = "title" | "playing" | "over";
 
 export default function JoopsGame() {
+  const [mounted, setMounted] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [upgrades, setUpgrades] = useState<Upgrades>(loadUpgrades());
   const upgradesRef = useRef(upgrades);
@@ -142,6 +143,7 @@ export default function JoopsGame() {
   });
 
   useEffect(() => {
+    setMounted(true);
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
@@ -171,9 +173,23 @@ export default function JoopsGame() {
     let vx = 0;
     let vy = 0;
 
-    const getDynamicMaxFuel = () => TUNE.maxFuel + upgradesRef.current.maxFuelLvl * 1000;
-    const getDynamicThrustSpeed = (lvl: number) => TUNE.thrustSpeeds[lvl] * (1 + upgradesRef.current.thrustLvl * 0.15);
-    const getDynamicMagnet = () => TUNE.magnetRange + upgradesRef.current.magnetLvl * 40;
+    const getEvolutionLvl = () => identityRef.current?.evolution_lvl || 1;
+
+    const getDynamicMaxFuel = () => {
+      let base = TUNE.maxFuel + upgradesRef.current.maxFuelLvl * 1000;
+      if (getEvolutionLvl() >= 3) base += 2000;
+      return base;
+    };
+    const getDynamicThrustSpeed = (lvl: number) => {
+      let speed = TUNE.thrustSpeeds[lvl] * (1 + upgradesRef.current.thrustLvl * 0.15);
+      if (getEvolutionLvl() >= 4) speed *= 1.2;
+      return speed;
+    };
+    const getDynamicMagnet = () => {
+      let range = TUNE.magnetRange + upgradesRef.current.magnetLvl * 40;
+      if (getEvolutionLvl() >= 2) range *= 1.3;
+      return range;
+    };
 
     // 타입을 명시하는 이유: TUNE은 as const라 startR이 리터럴 타입(24)이 되는데,
     // 그대로 두면 r에 다른 숫자를 대입할 수 없게 된다.
@@ -190,6 +206,8 @@ export default function JoopsGame() {
     let invincible = 0; // 남은 무적 시간
     let shake = 0; // 남은 화면 흔들림 시간
     let overAt = 0; // 게임오버 시각 — 재시작 디바운스용
+    let shieldCooldown = 0;
+    let hasShield = false;
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
     const pushUi = (rankResult: RankResult | "loading" | "error" | null = null) => setUi(prev => ({ 
@@ -223,6 +241,8 @@ export default function JoopsGame() {
       invincible = 0;
       shake = 0;
       spawnTimer = 0;
+      shieldCooldown = 0;
+      hasShield = getEvolutionLvl() >= 5;
       pushUi(null); // Reset rank result on new game
     };
 
@@ -338,6 +358,14 @@ export default function JoopsGame() {
 
     /** 가시 피격: 하트 -1 + 무적 + 흔들림 + 축소 + 팝업 + 소리. */
     const hit = () => {
+      if (hasShield) {
+        hasShield = false;
+        shieldCooldown = 45;
+        invincible = TUNE.invincibleTime;
+        popups.push(makePopup("SHIELD BLOCK!", mascot.x, mascot.y - mascot.r - 14, "#66fcf1"));
+        playHit();
+        return;
+      }
       hearts -= 1;
       invincible = TUNE.invincibleTime;
       shake = TUNE.shakeTime;
@@ -371,6 +399,14 @@ export default function JoopsGame() {
       elapsed += dt;
       if (invincible > 0) invincible -= dt;
       if (shake > 0) shake -= dt;
+
+      if (getEvolutionLvl() >= 5 && !hasShield && phase === "playing") {
+        shieldCooldown -= dt;
+        if (shieldCooldown <= 0) {
+          hasShield = true;
+          popups.push(makePopup("SHIELD READY!", mascot.x, mascot.y - mascot.r - 20, "#66fcf1"));
+        }
+      }
 
       // --- 스폰 (over에서는 새로 안 뿌리고, 남은 것만 마저 떨어진다) ---
       if (phase !== "over") {
@@ -568,7 +604,18 @@ export default function JoopsGame() {
       // 무적 중 초당 8회 반투명 깜빡임 — "지금은 안 맞아요"의 시각적 전달 (§8)
       const blinking =
         invincible > 0 && Math.floor(elapsed * TUNE.blinkHz * 2) % 2 === 1;
-      drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1);
+      drawMascot(ctx, mascot.x, mascot.y, mascot.r, blinking ? 0.3 : 1, getEvolutionLvl());
+
+      // Draw shield
+      if (hasShield && phase === "playing") {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(mascot.x, mascot.y, mascot.r + 5, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(102, 252, 241, ${0.4 + Math.sin(elapsed * 4) * 0.2})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
 
       for (const p of popups) drawPopup(ctx, p);
 
@@ -711,6 +758,10 @@ export default function JoopsGame() {
       disposeAudio();
     };
   }, []);
+
+  if (!mounted) {
+    return <div className="fixed inset-0 bg-black"></div>;
+  }
 
   return (
     <div className="fixed inset-0">
