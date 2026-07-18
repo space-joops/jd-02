@@ -70,19 +70,62 @@ function chirp(
   }
 }
 
-/** 먹이 먹음: 430→900Hz 상승 트라이앵글 — "좋은 일은 올라가는 부드러운 소리". */
+/** 먹이 먹음: 8-bit 코인 획득 사운드 (짧은 간격으로 음이 2번 오름) */
 export function playEat(): void {
-  chirp("triangle", 430, 900, 0.12);
+  chirp("square", 988, 988, 0.05, 0.05); // B5
+  chirp("square", 1318, 1318, 0.15, 0.05, 0.05); // E6
 }
 
-/** 가시 피격: 220→65Hz 하강 톱니파 — "나쁜 일은 내려가는 거친 소리". */
+/** 연료/아이템 획득: 8-bit 파워업 사운드 (빠른 아르페지오 상승) */
+export function playFuelUp(): void {
+  const notes = [261, 329, 392, 523, 659, 783]; // C4, E4, G4, C5, E5, G5
+  notes.forEach((freq, i) => {
+    chirp("square", freq, freq, 0.1, 0.04, i * 0.04);
+  });
+}
+
+/** 상점 업그레이드 획득 사운드 */
+export function playUpgrade(): void {
+  chirp("triangle", 1000, 1500, 0.1, 0.05);
+  chirp("square", 1500, 2000, 0.2, 0.05, 0.1);
+}
+
+/** 가시 피격: 8-bit 데미지 사운드 (빠르게 곤두박질치는 두 개의 파형 믹스) */
 export function playHit(): void {
-  chirp("sawtooth", 220, 65, 0.25, 0.06);
+  chirp("sawtooth", 150, 40, 0.2, 0.1);
+  chirp("square", 200, 50, 0.25, 0.08);
 }
 
-/** 게임 오버: 392→330→262Hz 세 음이 계단처럼 내려간다 ("솔–미–도"). */
+/** 게임 오버: 고전적인 "빰-빰-빠아아앙" 하강음 */
 export function playGameOver(): void {
-  chirp("triangle", 392, 392, 0.16, 0.07, 0);
-  chirp("triangle", 330, 330, 0.16, 0.07, 0.16);
-  chirp("triangle", 262, 262, 0.28, 0.07, 0.32);
+  chirp("square", 392, 392, 0.2, 0.05, 0);
+  chirp("square", 330, 330, 0.2, 0.05, 0.2);
+  chirp("square", 262, 262, 0.4, 0.05, 0.4);
+}
+
+let thrustNode: OscillatorNode | null = null;
+let thrustGain: GainNode | null = null;
+
+/** 엔진 소리(추진기): 낮은 주파수의 사각파로 레트로한 우주선 엔진음 구현 */
+export function updateThrustSound(level: number): void {
+  if (!audio) return;
+  if (!thrustNode || !thrustGain) {
+    if (level === 0) return; // 아직 시작할 필요 없음
+    thrustGain = audio.createGain();
+    thrustGain.gain.value = 0;
+    thrustGain.connect(audio.destination);
+    
+    thrustNode = audio.createOscillator();
+    thrustNode.type = "square";
+    thrustNode.frequency.value = 50; // 부릉거리는 베이스
+    thrustNode.connect(thrustGain);
+    thrustNode.start();
+  }
+  
+  // 레벨에 따라 음량과 피치 조절 (level 0: 정지, 1~3: 추진)
+  const targetGain = level > 0 ? 0.015 + (level * 0.015) : 0;
+  const targetFreq = 40 + (level * 20); // 40Hz ~ 100Hz
+  
+  thrustGain.gain.setTargetAtTime(targetGain, audio.currentTime, 0.1);
+  thrustNode.frequency.setTargetAtTime(targetFreq, audio.currentTime, 0.1);
 }

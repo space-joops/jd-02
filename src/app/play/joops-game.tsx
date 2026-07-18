@@ -32,6 +32,9 @@ import {
   playEat,
   playGameOver,
   playHit,
+  playFuelUp,
+  playUpgrade,
+  updateThrustSound,
 } from "@/lib/sound";
 import { GameUi, type GameUiState } from "./game-ui";
 
@@ -71,10 +74,10 @@ const TUNE = {
   joystickMaxRadius: 60,
   maxFuel: 3000,
   fuelRegen: 600,
-  thrustSpeeds: [100, 250, 450],
+  thrustSpeeds: [150, 375, 675], // 기존 대비 50% 향상 (100, 250, 450 -> 150, 375, 675)
   thrustCosts: [20, 80, 200], // 소모량 기존 대비 4배 (방금 2배에서 2배 더)
   friction: 1.2, // 우주 관성: 천천히 감소하는 마찰
-  minSpeed: 45, // 최소 유지 속도 (1.5배 증가)
+  minSpeed: 67.5, // 최소 유지 속도 (기존 45에서 50% 향상)
 } as const;
 
 type Phase = "title" | "playing" | "over";
@@ -86,11 +89,13 @@ export default function JoopsGame() {
   upgradesRef.current = upgrades;
 
   const handleUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => {
+    ensureAudio(); // 클릭 시 오디오 활성화 보장
     if (upgrades.totalJunk >= cost) {
       const next = { ...upgrades, totalJunk: upgrades.totalJunk - cost, [type]: upgrades[type] + 1 };
       setUpgrades(next);
       saveUpgrades(next);
       setUi(prev => ({ ...prev, upgrades: next }));
+      playUpgrade();
     }
   };
 
@@ -192,6 +197,7 @@ export default function JoopsGame() {
       }
       setUpgrades(upgradesRef.current);
       saveUpgrades(upgradesRef.current);
+      updateThrustSound(0); // 엔진음 정지
       playGameOver();
       pushUi();
     };
@@ -202,6 +208,7 @@ export default function JoopsGame() {
       if (j.kind === "fuel") {
         fuel = Math.min(getDynamicMaxFuel(), fuel + 800);
         popups.push(makePopup("FUEL UP!", j.x, j.y, COLORS.mascot));
+        playFuelUp();
       } else {
         score += 10;
         eaten += 1;
@@ -212,8 +219,8 @@ export default function JoopsGame() {
         popups.push(
           makePopup(EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)], j.x, j.y),
         );
+        playEat();
       }
-      playEat();
       pushUi();
     };
 
@@ -271,6 +278,7 @@ export default function JoopsGame() {
 
       // --- 주인공 이동 ---
       if (phase === "playing") {
+        let actualThrust = 0; // 현재 프레임의 실제 추진 단계 (사운드용)
         if (joyActive && fuel > 0) {
           const dx = joyCx - joyOx;
           const dy = joyCy - joyOy;
@@ -287,6 +295,7 @@ export default function JoopsGame() {
               const speed = getDynamicThrustSpeed(thrustLevel);
               vx += (dx / dist) * speed * dt;
               vy += (dy / dist) * speed * dt;
+              actualThrust = thrustLevel + 1; // 사운드는 1~3단계로 전달
             } else {
               fuel = 0;
             }
@@ -294,6 +303,9 @@ export default function JoopsGame() {
         } else {
           fuel = Math.min(getDynamicMaxFuel(), fuel + TUNE.fuelRegen * dt);
         }
+        
+        // 추진 사운드 업데이트
+        updateThrustSound(actualThrust);
         
         vx -= vx * TUNE.friction * dt;
         vy -= vy * TUNE.friction * dt;
