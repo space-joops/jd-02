@@ -58,9 +58,13 @@ export function saveUpgrades(u: Upgrades): void {
 
 const IDENTITY_KEY = "sjs-identity";
 
+export type Inventory = { satellite: number; can: number; bolt: number; spring: number };
+
 export type Identity = {
   name: string;
   secret_token: string;
+  inventory?: Inventory;
+  evolution_lvl?: number;
 };
 
 export function loadIdentity(): Identity | null {

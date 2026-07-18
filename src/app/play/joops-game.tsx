@@ -105,7 +105,12 @@ export default function JoopsGame() {
       const data = await res.json();
       if (!data.success) return data.error || "부화 실패";
       
-      const newIdentity = { name: data.pet.name, secret_token: data.pet.secret_token };
+      const newIdentity = { 
+        name: data.pet.name, 
+        secret_token: data.pet.secret_token,
+        inventory: data.pet.inventory || { satellite: 0, can: 0, bolt: 0, spring: 0 },
+        evolution_lvl: data.pet.evolution_lvl || 1
+      };
       saveIdentity(newIdentity);
       setIdentity(newIdentity);
     } catch {
@@ -255,6 +260,13 @@ export default function JoopsGame() {
           if (!data.success) {
             pushUi("error");
             return;
+          }
+          
+          const currentId = identityRef.current;
+          if (currentId) {
+            const updated = { ...currentId, inventory: data.inventory };
+            saveIdentity(updated);
+            setIdentity(updated);
           }
           
           const newHighest = data.highest_score_rank;
@@ -714,6 +726,13 @@ export default function JoopsGame() {
         onHome={() => goHomeRef.current?.()} 
         identity={identity}
         onHatch={handleHatch}
+        onEvolved={(newLevel, newInventory) => {
+          if (identityRef.current) {
+            const updated = { ...identityRef.current, evolution_lvl: newLevel, inventory: newInventory };
+            saveIdentity(updated);
+            setIdentity(updated);
+          }
+        }}
       />
     </div>
   );

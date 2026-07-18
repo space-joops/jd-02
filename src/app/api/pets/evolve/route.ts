@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// 임시 진화 레시피 (레벨업 할수록 요구사항 증가)
+// 진화 레시피 (레벨업 요구사항)
 const getEvolutionCost = (currentLvl: number) => {
-  return {
-    satellite: currentLvl * 2,
-    can: currentLvl * 10,
-    bolt: currentLvl * 5,
-    spring: currentLvl * 5
-  };
+  switch (currentLvl) {
+    case 1: return { satellite: 0, can: 20, bolt: 50, spring: 0 };
+    case 2: return { satellite: 0, can: 100, bolt: 0, spring: 50 };
+    case 3: return { satellite: 30, can: 0, bolt: 0, spring: 150 };
+    case 4: return { satellite: 100, can: 0, bolt: 0, spring: 0 };
+    default: return { satellite: 99999, can: 99999, bolt: 99999, spring: 99999 };
+  }
 };
 
 export async function POST(req: Request) {

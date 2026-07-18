@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from "react";
 import { COLORS } from "@/lib/constants";
-import { type Upgrades, type Identity } from "@/lib/storage";
+import { type Upgrades, type Identity, type Inventory } from "@/lib/storage";
 import pkg from "../../../package.json";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -48,6 +48,7 @@ export type GameUiState = {
   onHome?: () => void;
   identity: Identity | null;
   onHatch?: (name: string) => Promise<string | void>;
+  onEvolved?: (newLevel: number, newInventory: Inventory) => void;
   rankResult?: RankResult | "loading" | "error" | null;
 };
 
@@ -63,11 +64,44 @@ export function GameUi({
   onHome,
   identity,
   onHatch,
+  onEvolved,
   rankResult,
 }: GameUiState) {
   const [hatchName, setHatchName] = useState("");
   const [hatchError, setHatchError] = useState("");
   const [isHatching, setIsHatching] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
+  const [isEvolving, setIsEvolving] = useState(false);
+  
+  const getEvolutionCost = (lvl: number) => {
+    switch (lvl) {
+      case 1: return { satellite: 0, can: 20, bolt: 50, spring: 0 };
+      case 2: return { satellite: 0, can: 100, bolt: 0, spring: 50 };
+      case 3: return { satellite: 30, can: 0, bolt: 0, spring: 150 };
+      case 4: return { satellite: 100, can: 0, bolt: 0, spring: 0 };
+      default: return { satellite: 99999, can: 99999, bolt: 99999, spring: 99999 };
+    }
+  };
+
+  const doEvolve = async () => {
+    if (!identity) return;
+    setIsEvolving(true);
+    try {
+      const res = await fetch("/api/pets/evolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: identity.name, secret_token: identity.secret_token })
+      });
+      const data = await res.json();
+      if (data.success && onEvolved) {
+        onEvolved(data.new_level, data.inventory);
+      } else {
+        alert(data.error);
+      }
+    } finally {
+      setIsEvolving(false);
+    }
+  };
 
   const doHatch = async () => {
     if (!hatchName || !onHatch) return;
@@ -237,6 +271,14 @@ export function GameUi({
             SPACE JOOPS
           </h1>
           
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowInventory(true); }}
+            className="mt-2 px-6 py-2 bg-purple-600/80 text-white font-bold rounded-lg border border-purple-400 hover:bg-purple-500 pointer-events-auto"
+            style={{ textShadow: "2px 2px 0 #000" }}
+          >
+            🎒 INVENTORY & EVOLVE
+          </button>
+          
           <div className="flex flex-col gap-2 w-full items-center z-10 my-2">
             {renderUpgrade("maxFuelLvl", "FUEL TANK", 5, 50)}
             {renderUpgrade("thrustLvl", "THRUSTER", 5, 50)}
@@ -321,6 +363,70 @@ export function GameUi({
           >
             TAP TO RESTART
           </p>
+        </div>
+      )}
+
+      {/* ---- 인벤토리 & 진화 모달 ---- */}
+      {showInventory && identity && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/90 px-4 z-50 pointer-events-auto">
+          <div className="bg-gray-800 border-2 border-gray-500 rounded-xl p-6 w-full max-w-sm flex flex-col items-center">
+            <h2 className="text-2xl text-white mb-4">INVENTORY</h2>
+            
+            <div className="grid grid-cols-2 gap-4 w-full mb-6">
+              <div className="bg-gray-900 p-3 rounded text-center">
+                <div className="text-gray-400 text-xs mb-1">BOLT 🔩</div>
+                <div className="text-xl text-white">{identity.inventory?.bolt || 0}</div>
+              </div>
+              <div className="bg-gray-900 p-3 rounded text-center">
+                <div className="text-gray-400 text-xs mb-1">CAN 🥫</div>
+                <div className="text-xl text-white">{identity.inventory?.can || 0}</div>
+              </div>
+              <div className="bg-gray-900 p-3 rounded text-center">
+                <div className="text-gray-400 text-xs mb-1">SPRING 🌀</div>
+                <div className="text-xl text-white">{identity.inventory?.spring || 0}</div>
+              </div>
+              <div className="bg-gray-900 p-3 rounded text-center">
+                <div className="text-gray-400 text-xs mb-1">SAT 🛰️</div>
+                <div className="text-xl text-[#ffd166]">{identity.inventory?.satellite || 0}</div>
+              </div>
+            </div>
+
+            <div className="bg-black/50 w-full p-4 rounded-lg mb-6 text-center">
+              <h3 className="text-sm text-[#66fcf1] mb-2">
+                EVOLUTION LV.{identity.evolution_lvl || 1} ➡️ LV.{(identity.evolution_lvl || 1) + 1}
+              </h3>
+              {(() => {
+                const cost = getEvolutionCost(identity.evolution_lvl || 1);
+                const inv = identity.inventory || { satellite: 0, can: 0, bolt: 0, spring: 0 };
+                const canEvolve = (inv.satellite||0) >= cost.satellite && (inv.can||0) >= cost.can && (inv.bolt||0) >= cost.bolt && (inv.spring||0) >= cost.spring;
+                
+                return (
+                  <>
+                    <div className="text-xs text-gray-300 space-y-1 mb-4">
+                      {cost.bolt > 0 && <div>BOLT: {inv.bolt||0} / {cost.bolt}</div>}
+                      {cost.can > 0 && <div>CAN: {inv.can||0} / {cost.can}</div>}
+                      {cost.spring > 0 && <div>SPRING: {inv.spring||0} / {cost.spring}</div>}
+                      {cost.satellite > 0 && <div>SAT: {inv.satellite||0} / {cost.satellite}</div>}
+                    </div>
+                    <button 
+                      onClick={doEvolve}
+                      disabled={!canEvolve || isEvolving}
+                      className={`w-full py-2 rounded font-bold transition-colors ${canEvolve ? 'bg-purple-600 text-white hover:bg-purple-500' : 'bg-gray-700 text-gray-500'}`}
+                    >
+                      {isEvolving ? "진화 중..." : canEvolve ? "EVOLVE!" : "재료 부족"}
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+
+            <button 
+              onClick={() => setShowInventory(false)}
+              className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
+            >
+              닫기
+            </button>
+          </div>
         </div>
       )}
     </div>
