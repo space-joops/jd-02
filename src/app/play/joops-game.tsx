@@ -174,6 +174,7 @@ export default function JoopsGame() {
     const start = () => {
       junks = junks.filter(isFood);
       phase = "playing";
+      window.history.pushState(null, "", "/play");
       score = 0;
       eaten = 0;
       hearts = TUNE.hearts;
@@ -191,6 +192,7 @@ export default function JoopsGame() {
 
     const gameOver = () => {
       phase = "over";
+      window.history.pushState(null, "", "/");
       overAt = elapsed;
       newBest = score > best;
       if (newBest) {
