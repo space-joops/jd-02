@@ -13,6 +13,15 @@ import { useState, useEffect } from "react";
 import { COLORS } from "@/lib/constants";
 import { type Upgrades } from "@/lib/storage";
 
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: "accepted" | "dismissed";
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
 export type GameUiState = {
   phase: "title" | "playing" | "over";
   score: number;
@@ -34,15 +43,15 @@ export function GameUi({
   upgrades,
   onUpgrade,
 }: GameUiState) {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     // PWA Install Prompt 이벤트를 캡처합니다.
-    const handler = (e: any) => {
+    const handler = (e: Event) => {
       // Chrome 등에서 자동으로 하단에 미니 인포바가 뜨는 것을 방지
       e.preventDefault();
       // 이벤트를 보관해두었다가 사용자가 버튼을 누를 때 호출
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
@@ -50,8 +59,8 @@ export function GameUi({
 
   const handleInstallClick = () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt(); // 브라우저 고유의 설치 프롬프트 띄우기
-    deferredPrompt.userChoice.then((choiceResult: any) => {
+    deferredPrompt.prompt().catch(() => {}); // 브라우저 고유의 설치 프롬프트 띄우기
+    deferredPrompt.userChoice.then((choiceResult) => {
       if (choiceResult.outcome === "accepted") {
         console.log("User accepted the install prompt");
       }

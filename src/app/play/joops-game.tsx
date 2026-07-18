@@ -100,7 +100,7 @@ export default function JoopsGame() {
   };
 
   // React가 아는 유일한 게임 상태. HUD·오버레이가 이걸 그린다.
-  const [ui, setUi] = useState<GameUiState>({
+  const [ui, setUi] = useState<Omit<GameUiState, "onUpgrade">>({
     phase: "title",
     score: 0,
     hearts: TUNE.hearts,
@@ -108,7 +108,6 @@ export default function JoopsGame() {
     best: 0,
     newBest: false,
     upgrades,
-    onUpgrade: handleUpgrade,
   });
 
   useEffect(() => {
@@ -159,7 +158,7 @@ export default function JoopsGame() {
     let overAt = 0; // 게임오버 시각 — 재시작 디바운스용
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
-    const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest, upgrades: upgradesRef.current, onUpgrade: handleUpgrade });
+    const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest, upgrades: upgradesRef.current });
 
     // ------------------------------------------------------------------
     // 사건들
@@ -607,7 +606,7 @@ export default function JoopsGame() {
         className="absolute inset-0 h-full w-full touch-none"
         aria-label="스페이스 죽스 게임 화면"
       />
-      <GameUi {...ui} />
+      <GameUi {...ui} onUpgrade={handleUpgrade} />
     </div>
   );
 }
