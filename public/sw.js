@@ -1,4 +1,4 @@
-const CACHE_NAME = 'joops-cache-v2';
+const CACHE_NAME = 'joops-cache-v3';
 const urlsToCache = [
   '/',
   '/play',
@@ -30,36 +30,48 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // For navigation requests or requests for our cached assets
+  // Navigation requests (HTML) -> Network First
+  if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        // 캐시를 최신 상태로 갱신
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseClone);
+        });
+        return response;
+      }).catch(() => {
+        // 오프라인이거나 네트워크 실패 시 캐시된 버전 반환
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
+  // Other assets (JS, CSS, Images) -> Cache First, fallback to Network
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
         if (response) {
-          return response;
+          return response; // Cache hit
         }
         
-        // Clone the request because it's a stream that can only be consumed once
+        // Cache miss
         const fetchRequest = event.request.clone();
-        
         return fetch(fetchRequest).then(
           response => {
-            // Check if we received a valid response
             if(!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
-
-            // Optional: Clone the response to cache new requests dynamically
-            // const responseToCache = response.clone();
-            // caches.open(CACHE_NAME).then(cache => {
-            //   cache.put(event.request, responseToCache);
-            // });
-
+            // 정적 에셋(Next.js 청크 등) 동적 캐싱
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseToCache);
+            });
             return response;
           }
         ).catch(() => {
-          // If network fails and it's not in cache, fallback
-          // For a simple PWA game, failing gracefully is usually fine
+          // 네트워크 에러 무시 (오프라인 상태 등)
         });
       })
   );

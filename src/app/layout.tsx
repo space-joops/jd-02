@@ -51,6 +51,15 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
+                // 새 서비스 워커가 설치를 마치고 제어권을 넘겨받으면 페이지 새로고침
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
+                });
+
                 navigator.serviceWorker.register('/sw.js').then(
                   function(registration) {
                     console.log('ServiceWorker registration successful');
