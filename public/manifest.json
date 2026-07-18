@@ -1,0 +1,18 @@
+{
+  "name": "SPACE JOOPS",
+  "short_name": "Joops",
+  "description": "우주 쓰레기를 먹는 레트로 아케이드 게임",
+  "start_url": "/play",
+  "display": "fullscreen",
+  "background_color": "#141838",
+  "theme_color": "#141838",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

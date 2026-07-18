@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: "SPACE JOOPS · 우주 냠냠!",
   description:
     "하늘에서 떨어지는 우주쓰레기를 손가락으로 슥슥 받아먹는 모바일 캐주얼 게임",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "SPACE JOOPS",
+  },
 };
 
 // 뷰포트 설정 — 게임의 몰입감과 조작감을 지키는 장치들 (§13).
@@ -25,7 +31,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) {
+                      console.log('ServiceWorker registration successful');
+                    },
+                    function(err) {
+                      console.log('ServiceWorker registration failed: ', err);
+                    }
+                  );
+                });
+              }
+            `,
+          }}
+        />
+      </body>
     </html>
   );
 }
