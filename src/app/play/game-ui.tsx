@@ -8,6 +8,7 @@
 // ============================================================================
 
 import { COLORS } from "@/lib/constants";
+import { type Upgrades } from "@/lib/storage";
 
 export type GameUiState = {
   phase: "title" | "playing" | "over";
@@ -16,6 +17,8 @@ export type GameUiState = {
   eaten: number;
   best: number;
   newBest: boolean;
+  upgrades: Upgrades;
+  onUpgrade?: (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => void;
 };
 
 export function GameUi({
@@ -25,7 +28,33 @@ export function GameUi({
   eaten,
   best,
   newBest,
+  upgrades,
+  onUpgrade,
 }: GameUiState) {
+
+  const renderUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, name: string, maxLvl: number, baseCost: number) => {
+    const lvl = upgrades[type];
+    const cost = baseCost * (lvl + 1);
+    const isMax = lvl >= maxLvl;
+    const canAfford = upgrades.totalJunk >= cost;
+    
+    return (
+      <div className="flex justify-between items-center bg-black/60 p-3 rounded-lg border border-gray-600 w-full max-w-sm pointer-events-auto text-sm md:text-base">
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-white">{name} LV.{lvl}</span>
+          {!isMax && <span className={canAfford ? "text-[#ffd166]" : "text-gray-400"}>COST: {cost} JUNK</span>}
+          {isMax && <span className="text-gray-400">MAX LEVEL</span>}
+        </div>
+        <button
+          className={`px-3 py-2 rounded ${isMax || !canAfford ? 'bg-gray-700 text-gray-500' : 'bg-[#66fcf1] text-black hover:bg-white'}`}
+          disabled={isMax || !canAfford}
+          onClick={(e) => { e.stopPropagation(); onUpgrade?.(type, cost); }}
+        >
+          {isMax ? 'MAX' : 'UPG'}
+        </button>
+      </div>
+    );
+  };
   return (
     <div
       className="pointer-events-none absolute inset-0"
@@ -47,20 +76,27 @@ export function GameUi({
         </div>
       </div>
 
-      {/* ---- 타이틀 ---- */}
+      {/* ---- 타이틀 & 상점 ---- */}
       {phase === "title" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 px-6 text-center leading-loose">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center leading-loose">
+          <div className="absolute top-6 right-6 text-xl text-[#ffd166]" style={{ textShadow: "2px 2px 0 #000" }}>
+            TOTAL JUNK: {upgrades.totalJunk}
+          </div>
           <h1
-            className="text-4xl md:text-6xl font-bold"
+            className="text-4xl md:text-6xl font-bold mt-12"
             style={{ color: COLORS.accent, textShadow: "4px 4px 0 #000" }}
           >
             SPACE JOOPS
           </h1>
-          <p className="text-xl md:text-2xl tracking-widest text-white">
-            DRAG TO MOVE!<br/>EAT JUNK, AVOID SPIKES!
-          </p>
+          
+          <div className="flex flex-col gap-2 w-full items-center z-10 my-2">
+            {renderUpgrade("maxFuelLvl", "FUEL TANK", 5, 50)}
+            {renderUpgrade("thrustLvl", "THRUSTER", 5, 50)}
+            {renderUpgrade("magnetLvl", "MAGNET", 5, 50)}
+          </div>
+
           <p
-            className="mt-8 animate-pulse text-2xl md:text-3xl"
+            className="mt-2 animate-pulse text-2xl md:text-3xl"
             style={{ color: COLORS.accent }}
           >
             TAP TO START

@@ -29,3 +29,29 @@ export function saveBest(score: number): void {
     // 저장 실패는 게임 진행에 영향을 주지 않는다.
   }
 }
+
+const UPGRADES_KEY = "sjs-upgrades";
+
+export type Upgrades = {
+  totalJunk: number;
+  maxFuelLvl: number;
+  thrustLvl: number;
+  magnetLvl: number;
+};
+
+export function loadUpgrades(): Upgrades {
+  try {
+    const raw = localStorage.getItem(UPGRADES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.totalJunk === "number") return parsed;
+    }
+  } catch {}
+  return { totalJunk: 0, maxFuelLvl: 0, thrustLvl: 0, magnetLvl: 0 };
+}
+
+export function saveUpgrades(u: Upgrades): void {
+  try {
+    localStorage.setItem(UPGRADES_KEY, JSON.stringify(u));
+  } catch {}
+}

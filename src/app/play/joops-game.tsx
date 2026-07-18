@@ -25,7 +25,7 @@ import {
   stepJunk,
 } from "@/lib/debris";
 import { type Popup, drawPopup, makePopup, stepPopup } from "@/lib/effects";
-import { loadBest, saveBest } from "@/lib/storage";
+import { loadBest, saveBest, loadUpgrades, saveUpgrades, type Upgrades } from "@/lib/storage";
 import {
   disposeAudio,
   ensureAudio,
@@ -81,6 +81,18 @@ type Phase = "title" | "playing" | "over";
 
 export default function JoopsGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [upgrades, setUpgrades] = useState<Upgrades>(loadUpgrades());
+  const upgradesRef = useRef(upgrades);
+  upgradesRef.current = upgrades;
+
+  const handleUpgrade = (type: keyof Omit<Upgrades, "totalJunk">, cost: number) => {
+    if (upgrades.totalJunk >= cost) {
+      const next = { ...upgrades, totalJunk: upgrades.totalJunk - cost, [type]: upgrades[type] + 1 };
+      setUpgrades(next);
+      saveUpgrades(next);
+      setUi(prev => ({ ...prev, upgrades: next }));
+    }
+  };
 
   // React가 아는 유일한 게임 상태. HUD·오버레이가 이걸 그린다.
   const [ui, setUi] = useState<GameUiState>({
@@ -90,6 +102,8 @@ export default function JoopsGame() {
     eaten: 0,
     best: 0,
     newBest: false,
+    upgrades,
+    onUpgrade: handleUpgrade,
   });
 
   useEffect(() => {
@@ -119,6 +133,10 @@ export default function JoopsGame() {
     let vx = 0;
     let vy = 0;
 
+    const getDynamicMaxFuel = () => TUNE.maxFuel + upgradesRef.current.maxFuelLvl * 1000;
+    const getDynamicThrustSpeed = (lvl: number) => TUNE.thrustSpeeds[lvl] * (1 + upgradesRef.current.thrustLvl * 0.15);
+    const getDynamicMagnet = () => TUNE.magnetRange + upgradesRef.current.magnetLvl * 40;
+
     // 타입을 명시하는 이유: TUNE은 as const라 startR이 리터럴 타입(24)이 되는데,
     // 그대로 두면 r에 다른 숫자를 대입할 수 없게 된다.
     const mascot: { x: number; y: number; r: number } = {
@@ -136,7 +154,7 @@ export default function JoopsGame() {
     let overAt = 0; // 게임오버 시각 — 재시작 디바운스용
 
     /** React에 "지금 보여줄 값이 바뀌었어"라고 알린다. 바뀔 때만 부를 것. */
-    const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest });
+    const pushUi = () => setUi({ phase, score, hearts, eaten, best, newBest, upgrades: upgradesRef.current, onUpgrade: handleUpgrade });
 
     // ------------------------------------------------------------------
     // 사건들
@@ -156,7 +174,7 @@ export default function JoopsGame() {
       mascot.r = TUNE.startR;
       vx = 0;
       vy = 0;
-      fuel = TUNE.maxFuel;
+      fuel = getDynamicMaxFuel();
       joyActive = false;
       invincible = 0;
       shake = 0;
@@ -172,6 +190,8 @@ export default function JoopsGame() {
         best = score;
         saveBest(best);
       }
+      setUpgrades(upgradesRef.current);
+      saveUpgrades(upgradesRef.current);
       playGameOver();
       pushUi();
     };
@@ -180,11 +200,14 @@ export default function JoopsGame() {
     const eat = (j: Junk) => {
       j.eatT = 0; // 이제부터 update가 입으로 빨아들인다
       if (j.kind === "fuel") {
-        fuel = Math.min(TUNE.maxFuel, fuel + 800);
+        fuel = Math.min(getDynamicMaxFuel(), fuel + 800);
         popups.push(makePopup("FUEL UP!", j.x, j.y, COLORS.mascot));
       } else {
         score += 10;
         eaten += 1;
+        const u = upgradesRef.current;
+        upgradesRef.current = { ...u, totalJunk: u.totalJunk + 1 };
+        
         mascot.r = Math.min(TUNE.maxR, mascot.r + TUNE.growPerEat);
         popups.push(
           makePopup(EAT_WORDS[Math.floor(Math.random() * EAT_WORDS.length)], j.x, j.y),
@@ -261,7 +284,7 @@ export default function JoopsGame() {
             const cost = TUNE.thrustCosts[thrustLevel] * dt;
             if (fuel >= cost) {
               fuel -= cost;
-              const speed = TUNE.thrustSpeeds[thrustLevel];
+              const speed = getDynamicThrustSpeed(thrustLevel);
               vx += (dx / dist) * speed * dt;
               vy += (dy / dist) * speed * dt;
             } else {
@@ -269,7 +292,7 @@ export default function JoopsGame() {
             }
           }
         } else {
-          fuel = Math.min(TUNE.maxFuel, fuel + TUNE.fuelRegen * dt);
+          fuel = Math.min(getDynamicMaxFuel(), fuel + TUNE.fuelRegen * dt);
         }
         
         vx -= vx * TUNE.friction * dt;
@@ -320,7 +343,7 @@ export default function JoopsGame() {
           const dx = mascot.x - j.x;
           const dy = mascot.y - j.y;
           const dist = Math.hypot(dx, dy);
-          if (dist > 1 && dist < mascot.r + TUNE.magnetRange) {
+          if (dist > 1 && dist < mascot.r + getDynamicMagnet()) {
             const pull = (TUNE.magnetPull * dt) / dist;
             j.x0 += dx * pull;
             j.y += dy * pull;
@@ -454,8 +477,9 @@ export default function JoopsGame() {
         ctx.fillStyle = "rgba(0,0,0,0.5)";
         ctx.fillRect(barX, barY, barW, barH);
         
-        ctx.fillStyle = fuel > (TUNE.maxFuel * 0.2) ? "#66fcf1" : "#ff8080";
-        ctx.fillRect(barX, barY, barW * (fuel / TUNE.maxFuel), barH);
+        const dynMax = getDynamicMaxFuel();
+        ctx.fillStyle = fuel > (dynMax * 0.2) ? "#66fcf1" : "#ff8080";
+        ctx.fillRect(barX, barY, barW * (fuel / dynMax), barH);
         
         ctx.strokeStyle = "rgba(255,255,255,0.8)";
         ctx.lineWidth = 2;
