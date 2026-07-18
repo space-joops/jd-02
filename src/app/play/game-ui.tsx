@@ -12,6 +12,7 @@
 import { useState, useEffect } from "react";
 import { COLORS } from "@/lib/constants";
 import { type Upgrades } from "@/lib/storage";
+import pkg from "../../../package.json";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -163,6 +164,9 @@ export function GameUi({
           >
             SPACE JOOPS
           </h1>
+          <div className="text-xs md:text-sm text-gray-400 font-mono tracking-widest -mt-4 mb-2">
+            v{pkg.version}
+          </div>
           
           <div className="flex flex-col gap-2 w-full items-center z-10 my-2">
             {renderUpgrade("maxFuelLvl", "FUEL TANK", 5, 50)}
