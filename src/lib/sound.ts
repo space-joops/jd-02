@@ -10,13 +10,19 @@
 // ensureAudio()로 한다. 실패하면 조용히 무음으로 — 게임을 절대 막지 않는다.
 // ============================================================================
 
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 let audio: AudioContext | null = null;
 let audioUnlocked = false;
 
 /** 사용자 제스처 핸들러 안에서 호출: 오디오를 켜거나(1회) 잠든 컨텍스트를 깨운다. */
 export function ensureAudio(): void {
   try {
-    if (!audio) audio = new (window.AudioContext || (window as any).webkitAudioContext)();
+    if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
     // 모바일에서 탭 전환 등으로 suspended가 되면 다시 깨워 준다.
     if (audio.state === "suspended") void audio.resume();
   } catch {
@@ -34,7 +40,7 @@ export function initAudioListener(): void {
   const unlock = () => {
     if (audioUnlocked) return;
     try {
-      if (!audio) audio = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
       if (audio.state === "suspended") void audio.resume();
       
       // 더미 무음 오실레이터를 재생시켜 모바일 브라우저의 오디오 락을 확실히 풉니다.

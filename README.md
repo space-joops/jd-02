@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛰️ SPACE JOOPS (우주 냠냠!)
 
-## Getting Started
+"손가락으로 슥슥 움직여서, 하늘에서 떨어지는 우주쓰레기를 몽땅 먹어치우는 모바일 우선 캐주얼 PWA 게임."
 
-First, run the development server:
+지구 궤도에 넘쳐나는 우주 쓰레기를 먹어치우고 진화하는 우주 펫을 키워보세요!
+
+## 🎮 게임 설명
+- **장르**: 원버튼 캐주얼 아케이드 / 서바이벌
+- **조작**: 화면 터치 및 마우스 드래그 (가상 조이스틱)
+- **승리 조건**: 지속적으로 우주 쓰레기를 치워 재화를 획득하고 펫을 끝없이 진화시키는 것.
+- **게임 오버**: 장애물(가시)에 3번 부딪히면 펫이 다쳐서 게임 오버. 하지만 획득한 재화(JUNK)는 유지되어 상점 업그레이드가 가능합니다.
+
+## ✨ 주요 특징
+- 🎨 **8-bit 레트로 그래픽**: 캔버스 기반 60fps 픽셀 아트 렌더링
+- 🎵 **Web Audio API 합성**: 이미지나 오디오 에셋 다운로드 없이 순수 코드로 레트로 8-bit 효과음 즉석 합성
+- 📱 **PWA 완벽 지원**: 데스크톱 및 모바일(iOS Safari 포함) 환경에서 앱으로 즉시 설치 가능
+- 🚀 **업그레이드 시스템**: 우주 쓰레기를 팔아 얻은 고철(Junk)로 연료통(FUEL), 엔진(THRUST), 자석(MAGNET) 능력을 영구적으로 강화
+- ⚙️ **순수 물리 엔진 구현**: 관성과 마찰력을 이용한 조이스틱 가속 물리 엔진
+
+## 🛠️ 기술 스택
+- **Framework**: Next.js 15 (App Router, Turbopack)
+- **Library**: React 19, Tailwind CSS 4
+- **Engine**: 순수 HTML5 Canvas 2D + Web Audio API
+- **Infra**: Vercel (CI/CD 배포)
+
+## 🚀 로컬에서 실행하기
 
 ```bash
+# 의존성 패키지 설치
+npm install
+
+# 개발 서버 실행
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 [http://localhost:3000](http://localhost:3000) 으로 접속하여 플레이할 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🤖 AI 에이전트 지침
+프로젝트에 참여하는 AI(Gemini, Claude 등)는 반드시 [AGENT.md](./AGENT.md)를 먼저 확인하고 명시된 지침(커밋 및 푸시 제한, 문서 동기화 등)에 따라 코드를 작성해주세요.
